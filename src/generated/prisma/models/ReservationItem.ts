@@ -204,8 +204,8 @@ export type ReservationItemWhereInput = {
   AND?: Prisma.ReservationItemWhereInput | Prisma.ReservationItemWhereInput[]
   OR?: Prisma.ReservationItemWhereInput[]
   NOT?: Prisma.ReservationItemWhereInput | Prisma.ReservationItemWhereInput[]
-  id?: Prisma.StringFilter<"ReservationItem"> | string
-  reservationId?: Prisma.StringFilter<"ReservationItem"> | string
+  id?: Prisma.UuidFilter<"ReservationItem"> | string
+  reservationId?: Prisma.UuidFilter<"ReservationItem"> | string
   productId?: Prisma.StringFilter<"ReservationItem"> | string
   quantity?: Prisma.IntFilter<"ReservationItem"> | number
   reservation?: Prisma.XOR<Prisma.StockReservationScalarRelationFilter, Prisma.StockReservationWhereInput>
@@ -224,7 +224,7 @@ export type ReservationItemWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ReservationItemWhereInput | Prisma.ReservationItemWhereInput[]
   OR?: Prisma.ReservationItemWhereInput[]
   NOT?: Prisma.ReservationItemWhereInput | Prisma.ReservationItemWhereInput[]
-  reservationId?: Prisma.StringFilter<"ReservationItem"> | string
+  reservationId?: Prisma.UuidFilter<"ReservationItem"> | string
   productId?: Prisma.StringFilter<"ReservationItem"> | string
   quantity?: Prisma.IntFilter<"ReservationItem"> | number
   reservation?: Prisma.XOR<Prisma.StockReservationScalarRelationFilter, Prisma.StockReservationWhereInput>
@@ -246,8 +246,8 @@ export type ReservationItemScalarWhereWithAggregatesInput = {
   AND?: Prisma.ReservationItemScalarWhereWithAggregatesInput | Prisma.ReservationItemScalarWhereWithAggregatesInput[]
   OR?: Prisma.ReservationItemScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ReservationItemScalarWhereWithAggregatesInput | Prisma.ReservationItemScalarWhereWithAggregatesInput[]
-  id?: Prisma.StringWithAggregatesFilter<"ReservationItem"> | string
-  reservationId?: Prisma.StringWithAggregatesFilter<"ReservationItem"> | string
+  id?: Prisma.UuidWithAggregatesFilter<"ReservationItem"> | string
+  reservationId?: Prisma.UuidWithAggregatesFilter<"ReservationItem"> | string
   productId?: Prisma.StringWithAggregatesFilter<"ReservationItem"> | string
   quantity?: Prisma.IntWithAggregatesFilter<"ReservationItem"> | number
 }
@@ -423,8 +423,8 @@ export type ReservationItemScalarWhereInput = {
   AND?: Prisma.ReservationItemScalarWhereInput | Prisma.ReservationItemScalarWhereInput[]
   OR?: Prisma.ReservationItemScalarWhereInput[]
   NOT?: Prisma.ReservationItemScalarWhereInput | Prisma.ReservationItemScalarWhereInput[]
-  id?: Prisma.StringFilter<"ReservationItem"> | string
-  reservationId?: Prisma.StringFilter<"ReservationItem"> | string
+  id?: Prisma.UuidFilter<"ReservationItem"> | string
+  reservationId?: Prisma.UuidFilter<"ReservationItem"> | string
   productId?: Prisma.StringFilter<"ReservationItem"> | string
   quantity?: Prisma.IntFilter<"ReservationItem"> | number
 }

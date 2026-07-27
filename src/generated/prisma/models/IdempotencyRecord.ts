@@ -187,11 +187,11 @@ export type IdempotencyRecordWhereInput = {
   AND?: Prisma.IdempotencyRecordWhereInput | Prisma.IdempotencyRecordWhereInput[]
   OR?: Prisma.IdempotencyRecordWhereInput[]
   NOT?: Prisma.IdempotencyRecordWhereInput | Prisma.IdempotencyRecordWhereInput[]
-  id?: Prisma.StringFilter<"IdempotencyRecord"> | string
+  id?: Prisma.UuidFilter<"IdempotencyRecord"> | string
   key?: Prisma.StringFilter<"IdempotencyRecord"> | string
   requestHash?: Prisma.StringFilter<"IdempotencyRecord"> | string
   canonicalBody?: Prisma.JsonFilter<"IdempotencyRecord">
-  orderId?: Prisma.StringNullableFilter<"IdempotencyRecord"> | string | null
+  orderId?: Prisma.UuidNullableFilter<"IdempotencyRecord"> | string | null
   expiresAt?: Prisma.DateTimeFilter<"IdempotencyRecord"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"IdempotencyRecord"> | Date | string
   order?: Prisma.XOR<Prisma.OrderNullableScalarRelationFilter, Prisma.OrderWhereInput> | null
@@ -216,7 +216,7 @@ export type IdempotencyRecordWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.IdempotencyRecordWhereInput | Prisma.IdempotencyRecordWhereInput[]
   requestHash?: Prisma.StringFilter<"IdempotencyRecord"> | string
   canonicalBody?: Prisma.JsonFilter<"IdempotencyRecord">
-  orderId?: Prisma.StringNullableFilter<"IdempotencyRecord"> | string | null
+  orderId?: Prisma.UuidNullableFilter<"IdempotencyRecord"> | string | null
   expiresAt?: Prisma.DateTimeFilter<"IdempotencyRecord"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"IdempotencyRecord"> | Date | string
   order?: Prisma.XOR<Prisma.OrderNullableScalarRelationFilter, Prisma.OrderWhereInput> | null
@@ -239,11 +239,11 @@ export type IdempotencyRecordScalarWhereWithAggregatesInput = {
   AND?: Prisma.IdempotencyRecordScalarWhereWithAggregatesInput | Prisma.IdempotencyRecordScalarWhereWithAggregatesInput[]
   OR?: Prisma.IdempotencyRecordScalarWhereWithAggregatesInput[]
   NOT?: Prisma.IdempotencyRecordScalarWhereWithAggregatesInput | Prisma.IdempotencyRecordScalarWhereWithAggregatesInput[]
-  id?: Prisma.StringWithAggregatesFilter<"IdempotencyRecord"> | string
+  id?: Prisma.UuidWithAggregatesFilter<"IdempotencyRecord"> | string
   key?: Prisma.StringWithAggregatesFilter<"IdempotencyRecord"> | string
   requestHash?: Prisma.StringWithAggregatesFilter<"IdempotencyRecord"> | string
   canonicalBody?: Prisma.JsonWithAggregatesFilter<"IdempotencyRecord">
-  orderId?: Prisma.StringNullableWithAggregatesFilter<"IdempotencyRecord"> | string | null
+  orderId?: Prisma.UuidNullableWithAggregatesFilter<"IdempotencyRecord"> | string | null
   expiresAt?: Prisma.DateTimeWithAggregatesFilter<"IdempotencyRecord"> | Date | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"IdempotencyRecord"> | Date | string
 }
@@ -445,11 +445,11 @@ export type IdempotencyRecordScalarWhereInput = {
   AND?: Prisma.IdempotencyRecordScalarWhereInput | Prisma.IdempotencyRecordScalarWhereInput[]
   OR?: Prisma.IdempotencyRecordScalarWhereInput[]
   NOT?: Prisma.IdempotencyRecordScalarWhereInput | Prisma.IdempotencyRecordScalarWhereInput[]
-  id?: Prisma.StringFilter<"IdempotencyRecord"> | string
+  id?: Prisma.UuidFilter<"IdempotencyRecord"> | string
   key?: Prisma.StringFilter<"IdempotencyRecord"> | string
   requestHash?: Prisma.StringFilter<"IdempotencyRecord"> | string
   canonicalBody?: Prisma.JsonFilter<"IdempotencyRecord">
-  orderId?: Prisma.StringNullableFilter<"IdempotencyRecord"> | string | null
+  orderId?: Prisma.UuidNullableFilter<"IdempotencyRecord"> | string | null
   expiresAt?: Prisma.DateTimeFilter<"IdempotencyRecord"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"IdempotencyRecord"> | Date | string
 }

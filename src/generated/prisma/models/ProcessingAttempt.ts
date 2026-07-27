@@ -239,11 +239,11 @@ export type ProcessingAttemptWhereInput = {
   AND?: Prisma.ProcessingAttemptWhereInput | Prisma.ProcessingAttemptWhereInput[]
   OR?: Prisma.ProcessingAttemptWhereInput[]
   NOT?: Prisma.ProcessingAttemptWhereInput | Prisma.ProcessingAttemptWhereInput[]
-  id?: Prisma.StringFilter<"ProcessingAttempt"> | string
-  orderId?: Prisma.StringFilter<"ProcessingAttempt"> | string
+  id?: Prisma.UuidFilter<"ProcessingAttempt"> | string
+  orderId?: Prisma.UuidFilter<"ProcessingAttempt"> | string
   attemptNumber?: Prisma.IntFilter<"ProcessingAttempt"> | number
-  correlationId?: Prisma.StringFilter<"ProcessingAttempt"> | string
-  processingToken?: Prisma.StringFilter<"ProcessingAttempt"> | string
+  correlationId?: Prisma.UuidFilter<"ProcessingAttempt"> | string
+  processingToken?: Prisma.UuidFilter<"ProcessingAttempt"> | string
   deadlineAt?: Prisma.DateTimeFilter<"ProcessingAttempt"> | Date | string
   startedAt?: Prisma.DateTimeFilter<"ProcessingAttempt"> | Date | string
   finishedAt?: Prisma.DateTimeNullableFilter<"ProcessingAttempt"> | Date | string | null
@@ -270,10 +270,10 @@ export type ProcessingAttemptWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ProcessingAttemptWhereInput | Prisma.ProcessingAttemptWhereInput[]
   OR?: Prisma.ProcessingAttemptWhereInput[]
   NOT?: Prisma.ProcessingAttemptWhereInput | Prisma.ProcessingAttemptWhereInput[]
-  orderId?: Prisma.StringFilter<"ProcessingAttempt"> | string
+  orderId?: Prisma.UuidFilter<"ProcessingAttempt"> | string
   attemptNumber?: Prisma.IntFilter<"ProcessingAttempt"> | number
-  correlationId?: Prisma.StringFilter<"ProcessingAttempt"> | string
-  processingToken?: Prisma.StringFilter<"ProcessingAttempt"> | string
+  correlationId?: Prisma.UuidFilter<"ProcessingAttempt"> | string
+  processingToken?: Prisma.UuidFilter<"ProcessingAttempt"> | string
   deadlineAt?: Prisma.DateTimeFilter<"ProcessingAttempt"> | Date | string
   startedAt?: Prisma.DateTimeFilter<"ProcessingAttempt"> | Date | string
   finishedAt?: Prisma.DateTimeNullableFilter<"ProcessingAttempt"> | Date | string | null
@@ -302,11 +302,11 @@ export type ProcessingAttemptScalarWhereWithAggregatesInput = {
   AND?: Prisma.ProcessingAttemptScalarWhereWithAggregatesInput | Prisma.ProcessingAttemptScalarWhereWithAggregatesInput[]
   OR?: Prisma.ProcessingAttemptScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ProcessingAttemptScalarWhereWithAggregatesInput | Prisma.ProcessingAttemptScalarWhereWithAggregatesInput[]
-  id?: Prisma.StringWithAggregatesFilter<"ProcessingAttempt"> | string
-  orderId?: Prisma.StringWithAggregatesFilter<"ProcessingAttempt"> | string
+  id?: Prisma.UuidWithAggregatesFilter<"ProcessingAttempt"> | string
+  orderId?: Prisma.UuidWithAggregatesFilter<"ProcessingAttempt"> | string
   attemptNumber?: Prisma.IntWithAggregatesFilter<"ProcessingAttempt"> | number
-  correlationId?: Prisma.StringWithAggregatesFilter<"ProcessingAttempt"> | string
-  processingToken?: Prisma.StringWithAggregatesFilter<"ProcessingAttempt"> | string
+  correlationId?: Prisma.UuidWithAggregatesFilter<"ProcessingAttempt"> | string
+  processingToken?: Prisma.UuidWithAggregatesFilter<"ProcessingAttempt"> | string
   deadlineAt?: Prisma.DateTimeWithAggregatesFilter<"ProcessingAttempt"> | Date | string
   startedAt?: Prisma.DateTimeWithAggregatesFilter<"ProcessingAttempt"> | Date | string
   finishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ProcessingAttempt"> | Date | string | null
@@ -553,11 +553,11 @@ export type ProcessingAttemptScalarWhereInput = {
   AND?: Prisma.ProcessingAttemptScalarWhereInput | Prisma.ProcessingAttemptScalarWhereInput[]
   OR?: Prisma.ProcessingAttemptScalarWhereInput[]
   NOT?: Prisma.ProcessingAttemptScalarWhereInput | Prisma.ProcessingAttemptScalarWhereInput[]
-  id?: Prisma.StringFilter<"ProcessingAttempt"> | string
-  orderId?: Prisma.StringFilter<"ProcessingAttempt"> | string
+  id?: Prisma.UuidFilter<"ProcessingAttempt"> | string
+  orderId?: Prisma.UuidFilter<"ProcessingAttempt"> | string
   attemptNumber?: Prisma.IntFilter<"ProcessingAttempt"> | number
-  correlationId?: Prisma.StringFilter<"ProcessingAttempt"> | string
-  processingToken?: Prisma.StringFilter<"ProcessingAttempt"> | string
+  correlationId?: Prisma.UuidFilter<"ProcessingAttempt"> | string
+  processingToken?: Prisma.UuidFilter<"ProcessingAttempt"> | string
   deadlineAt?: Prisma.DateTimeFilter<"ProcessingAttempt"> | Date | string
   startedAt?: Prisma.DateTimeFilter<"ProcessingAttempt"> | Date | string
   finishedAt?: Prisma.DateTimeNullableFilter<"ProcessingAttempt"> | Date | string | null

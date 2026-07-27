@@ -208,14 +208,14 @@ export type OutboxEventWhereInput = {
   AND?: Prisma.OutboxEventWhereInput | Prisma.OutboxEventWhereInput[]
   OR?: Prisma.OutboxEventWhereInput[]
   NOT?: Prisma.OutboxEventWhereInput | Prisma.OutboxEventWhereInput[]
-  id?: Prisma.StringFilter<"OutboxEvent"> | string
-  orderId?: Prisma.StringFilter<"OutboxEvent"> | string
+  id?: Prisma.UuidFilter<"OutboxEvent"> | string
+  orderId?: Prisma.UuidFilter<"OutboxEvent"> | string
   type?: Prisma.StringFilter<"OutboxEvent"> | string
   payload?: Prisma.JsonFilter<"OutboxEvent">
   status?: Prisma.EnumOutboxStatusFilter<"OutboxEvent"> | $Enums.OutboxStatus
   availableAt?: Prisma.DateTimeFilter<"OutboxEvent"> | Date | string
   publishedAt?: Prisma.DateTimeNullableFilter<"OutboxEvent"> | Date | string | null
-  lockToken?: Prisma.StringNullableFilter<"OutboxEvent"> | string | null
+  lockToken?: Prisma.UuidNullableFilter<"OutboxEvent"> | string | null
   lockedUntil?: Prisma.DateTimeNullableFilter<"OutboxEvent"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"OutboxEvent"> | Date | string
   order?: Prisma.XOR<Prisma.OrderScalarRelationFilter, Prisma.OrderWhereInput>
@@ -240,13 +240,13 @@ export type OutboxEventWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.OutboxEventWhereInput | Prisma.OutboxEventWhereInput[]
   OR?: Prisma.OutboxEventWhereInput[]
   NOT?: Prisma.OutboxEventWhereInput | Prisma.OutboxEventWhereInput[]
-  orderId?: Prisma.StringFilter<"OutboxEvent"> | string
+  orderId?: Prisma.UuidFilter<"OutboxEvent"> | string
   type?: Prisma.StringFilter<"OutboxEvent"> | string
   payload?: Prisma.JsonFilter<"OutboxEvent">
   status?: Prisma.EnumOutboxStatusFilter<"OutboxEvent"> | $Enums.OutboxStatus
   availableAt?: Prisma.DateTimeFilter<"OutboxEvent"> | Date | string
   publishedAt?: Prisma.DateTimeNullableFilter<"OutboxEvent"> | Date | string | null
-  lockToken?: Prisma.StringNullableFilter<"OutboxEvent"> | string | null
+  lockToken?: Prisma.UuidNullableFilter<"OutboxEvent"> | string | null
   lockedUntil?: Prisma.DateTimeNullableFilter<"OutboxEvent"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"OutboxEvent"> | Date | string
   order?: Prisma.XOR<Prisma.OrderScalarRelationFilter, Prisma.OrderWhereInput>
@@ -272,14 +272,14 @@ export type OutboxEventScalarWhereWithAggregatesInput = {
   AND?: Prisma.OutboxEventScalarWhereWithAggregatesInput | Prisma.OutboxEventScalarWhereWithAggregatesInput[]
   OR?: Prisma.OutboxEventScalarWhereWithAggregatesInput[]
   NOT?: Prisma.OutboxEventScalarWhereWithAggregatesInput | Prisma.OutboxEventScalarWhereWithAggregatesInput[]
-  id?: Prisma.StringWithAggregatesFilter<"OutboxEvent"> | string
-  orderId?: Prisma.StringWithAggregatesFilter<"OutboxEvent"> | string
+  id?: Prisma.UuidWithAggregatesFilter<"OutboxEvent"> | string
+  orderId?: Prisma.UuidWithAggregatesFilter<"OutboxEvent"> | string
   type?: Prisma.StringWithAggregatesFilter<"OutboxEvent"> | string
   payload?: Prisma.JsonWithAggregatesFilter<"OutboxEvent">
   status?: Prisma.EnumOutboxStatusWithAggregatesFilter<"OutboxEvent"> | $Enums.OutboxStatus
   availableAt?: Prisma.DateTimeWithAggregatesFilter<"OutboxEvent"> | Date | string
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"OutboxEvent"> | Date | string | null
-  lockToken?: Prisma.StringNullableWithAggregatesFilter<"OutboxEvent"> | string | null
+  lockToken?: Prisma.UuidNullableWithAggregatesFilter<"OutboxEvent"> | string | null
   lockedUntil?: Prisma.DateTimeNullableWithAggregatesFilter<"OutboxEvent"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"OutboxEvent"> | Date | string
 }
@@ -521,14 +521,14 @@ export type OutboxEventScalarWhereInput = {
   AND?: Prisma.OutboxEventScalarWhereInput | Prisma.OutboxEventScalarWhereInput[]
   OR?: Prisma.OutboxEventScalarWhereInput[]
   NOT?: Prisma.OutboxEventScalarWhereInput | Prisma.OutboxEventScalarWhereInput[]
-  id?: Prisma.StringFilter<"OutboxEvent"> | string
-  orderId?: Prisma.StringFilter<"OutboxEvent"> | string
+  id?: Prisma.UuidFilter<"OutboxEvent"> | string
+  orderId?: Prisma.UuidFilter<"OutboxEvent"> | string
   type?: Prisma.StringFilter<"OutboxEvent"> | string
   payload?: Prisma.JsonFilter<"OutboxEvent">
   status?: Prisma.EnumOutboxStatusFilter<"OutboxEvent"> | $Enums.OutboxStatus
   availableAt?: Prisma.DateTimeFilter<"OutboxEvent"> | Date | string
   publishedAt?: Prisma.DateTimeNullableFilter<"OutboxEvent"> | Date | string | null
-  lockToken?: Prisma.StringNullableFilter<"OutboxEvent"> | string | null
+  lockToken?: Prisma.UuidNullableFilter<"OutboxEvent"> | string | null
   lockedUntil?: Prisma.DateTimeNullableFilter<"OutboxEvent"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"OutboxEvent"> | Date | string
 }

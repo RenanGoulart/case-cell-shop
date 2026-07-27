@@ -191,8 +191,8 @@ export type StockReservationWhereInput = {
   AND?: Prisma.StockReservationWhereInput | Prisma.StockReservationWhereInput[]
   OR?: Prisma.StockReservationWhereInput[]
   NOT?: Prisma.StockReservationWhereInput | Prisma.StockReservationWhereInput[]
-  id?: Prisma.StringFilter<"StockReservation"> | string
-  orderId?: Prisma.StringFilter<"StockReservation"> | string
+  id?: Prisma.UuidFilter<"StockReservation"> | string
+  orderId?: Prisma.UuidFilter<"StockReservation"> | string
   state?: Prisma.EnumReservationStateFilter<"StockReservation"> | $Enums.ReservationState
   expiresAt?: Prisma.DateTimeFilter<"StockReservation"> | Date | string
   consumedAt?: Prisma.DateTimeNullableFilter<"StockReservation"> | Date | string | null
@@ -219,7 +219,7 @@ export type StockReservationWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.StockReservationWhereInput | Prisma.StockReservationWhereInput[]
   OR?: Prisma.StockReservationWhereInput[]
   NOT?: Prisma.StockReservationWhereInput | Prisma.StockReservationWhereInput[]
-  orderId?: Prisma.StringFilter<"StockReservation"> | string
+  orderId?: Prisma.UuidFilter<"StockReservation"> | string
   state?: Prisma.EnumReservationStateFilter<"StockReservation"> | $Enums.ReservationState
   expiresAt?: Prisma.DateTimeFilter<"StockReservation"> | Date | string
   consumedAt?: Prisma.DateTimeNullableFilter<"StockReservation"> | Date | string | null
@@ -246,8 +246,8 @@ export type StockReservationScalarWhereWithAggregatesInput = {
   AND?: Prisma.StockReservationScalarWhereWithAggregatesInput | Prisma.StockReservationScalarWhereWithAggregatesInput[]
   OR?: Prisma.StockReservationScalarWhereWithAggregatesInput[]
   NOT?: Prisma.StockReservationScalarWhereWithAggregatesInput | Prisma.StockReservationScalarWhereWithAggregatesInput[]
-  id?: Prisma.StringWithAggregatesFilter<"StockReservation"> | string
-  orderId?: Prisma.StringWithAggregatesFilter<"StockReservation"> | string
+  id?: Prisma.UuidWithAggregatesFilter<"StockReservation"> | string
+  orderId?: Prisma.UuidWithAggregatesFilter<"StockReservation"> | string
   state?: Prisma.EnumReservationStateWithAggregatesFilter<"StockReservation"> | $Enums.ReservationState
   expiresAt?: Prisma.DateTimeWithAggregatesFilter<"StockReservation"> | Date | string
   consumedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"StockReservation"> | Date | string | null
@@ -487,8 +487,8 @@ export type StockReservationScalarWhereInput = {
   AND?: Prisma.StockReservationScalarWhereInput | Prisma.StockReservationScalarWhereInput[]
   OR?: Prisma.StockReservationScalarWhereInput[]
   NOT?: Prisma.StockReservationScalarWhereInput | Prisma.StockReservationScalarWhereInput[]
-  id?: Prisma.StringFilter<"StockReservation"> | string
-  orderId?: Prisma.StringFilter<"StockReservation"> | string
+  id?: Prisma.UuidFilter<"StockReservation"> | string
+  orderId?: Prisma.UuidFilter<"StockReservation"> | string
   state?: Prisma.EnumReservationStateFilter<"StockReservation"> | $Enums.ReservationState
   expiresAt?: Prisma.DateTimeFilter<"StockReservation"> | Date | string
   consumedAt?: Prisma.DateTimeNullableFilter<"StockReservation"> | Date | string | null

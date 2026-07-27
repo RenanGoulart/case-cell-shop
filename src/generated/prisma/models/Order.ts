@@ -232,10 +232,10 @@ export type OrderWhereInput = {
   AND?: Prisma.OrderWhereInput | Prisma.OrderWhereInput[]
   OR?: Prisma.OrderWhereInput[]
   NOT?: Prisma.OrderWhereInput | Prisma.OrderWhereInput[]
-  id?: Prisma.StringFilter<"Order"> | string
+  id?: Prisma.UuidFilter<"Order"> | string
   status?: Prisma.EnumOrderStatusFilter<"Order"> | $Enums.OrderStatus
-  requestId?: Prisma.StringFilter<"Order"> | string
-  correlationId?: Prisma.StringFilter<"Order"> | string
+  requestId?: Prisma.UuidFilter<"Order"> | string
+  correlationId?: Prisma.UuidFilter<"Order"> | string
   currentAttempt?: Prisma.IntFilter<"Order"> | number
   finalError?: Prisma.StringNullableFilter<"Order"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Order"> | Date | string
@@ -269,8 +269,8 @@ export type OrderWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.OrderWhereInput[]
   NOT?: Prisma.OrderWhereInput | Prisma.OrderWhereInput[]
   status?: Prisma.EnumOrderStatusFilter<"Order"> | $Enums.OrderStatus
-  requestId?: Prisma.StringFilter<"Order"> | string
-  correlationId?: Prisma.StringFilter<"Order"> | string
+  requestId?: Prisma.UuidFilter<"Order"> | string
+  correlationId?: Prisma.UuidFilter<"Order"> | string
   currentAttempt?: Prisma.IntFilter<"Order"> | number
   finalError?: Prisma.StringNullableFilter<"Order"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Order"> | Date | string
@@ -302,10 +302,10 @@ export type OrderScalarWhereWithAggregatesInput = {
   AND?: Prisma.OrderScalarWhereWithAggregatesInput | Prisma.OrderScalarWhereWithAggregatesInput[]
   OR?: Prisma.OrderScalarWhereWithAggregatesInput[]
   NOT?: Prisma.OrderScalarWhereWithAggregatesInput | Prisma.OrderScalarWhereWithAggregatesInput[]
-  id?: Prisma.StringWithAggregatesFilter<"Order"> | string
+  id?: Prisma.UuidWithAggregatesFilter<"Order"> | string
   status?: Prisma.EnumOrderStatusWithAggregatesFilter<"Order"> | $Enums.OrderStatus
-  requestId?: Prisma.StringWithAggregatesFilter<"Order"> | string
-  correlationId?: Prisma.StringWithAggregatesFilter<"Order"> | string
+  requestId?: Prisma.UuidWithAggregatesFilter<"Order"> | string
+  correlationId?: Prisma.UuidWithAggregatesFilter<"Order"> | string
   currentAttempt?: Prisma.IntWithAggregatesFilter<"Order"> | number
   finalError?: Prisma.StringNullableWithAggregatesFilter<"Order"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Order"> | Date | string
