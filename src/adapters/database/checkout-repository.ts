@@ -13,6 +13,12 @@ class CheckoutRollback extends Error {
   }
 }
 
+function waitForCommittedIdempotencyDecision(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 20);
+  });
+}
+
 export class PrismaCheckoutRepository implements CheckoutRepository {
   public constructor(private readonly prisma: PrismaClient) {}
 
@@ -139,10 +145,48 @@ export class PrismaCheckoutRepository implements CheckoutRepository {
       }
 
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        return { outcome: "idempotency_conflict" };
+        return this.resolveIdempotencyConflict(input);
       }
 
       throw error;
     }
+  }
+  private async resolveIdempotencyConflict(
+    input: CheckoutAcceptanceInput,
+  ): Promise<CheckoutRepositoryResult> {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const record = await this.prisma.idempotencyRecord.findUnique({
+        where: { key: input.idempotencyKey },
+        select: {
+          requestHash: true,
+          order: {
+            select: {
+              id: true,
+              status: true,
+            },
+          },
+        },
+      });
+
+      if (record === null) {
+        return { outcome: "idempotency_conflict" };
+      }
+
+      if (record.requestHash !== input.requestHash) {
+        return { outcome: "idempotency_conflict" };
+      }
+
+      if (record.order !== null) {
+        return {
+          outcome: "replayed",
+          orderId: record.order.id,
+          status: record.order.status,
+        };
+      }
+
+      await waitForCommittedIdempotencyDecision();
+    }
+
+    return { outcome: "idempotency_conflict" };
   }
 }

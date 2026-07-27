@@ -1,3 +1,5 @@
+import type { OrderStatus } from "../domain/order-state.js";
+
 import type { CheckoutPayload } from "../domain/canonical-payload.js";
 
 export interface CheckoutAcceptanceItem {
@@ -23,12 +25,19 @@ export interface CheckoutAcceptanceInput {
 
 export type CheckoutRepositoryResult =
   | { readonly outcome: "accepted"; readonly orderId: string }
+  | { readonly outcome: "replayed"; readonly orderId: string; readonly status: OrderStatus }
   | { readonly outcome: "product_not_found"; readonly productIds: readonly string[] }
   | { readonly outcome: "insufficient_stock" }
   | { readonly outcome: "idempotency_conflict" };
 
 export interface CheckoutRepository {
   accept(input: CheckoutAcceptanceInput): Promise<CheckoutRepositoryResult>;
+}
+
+export interface CheckoutIdempotencyMetrics {
+  recordCreated(): void;
+  recordReplay(): void;
+  recordConflict(): void;
 }
 
 export interface CatalogInvalidationPort {

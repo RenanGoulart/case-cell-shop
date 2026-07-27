@@ -144,18 +144,18 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 > Write these tests FIRST and confirm each fails for the expected reason.
 
-- [ ] T065 [P] [US3] Write failing unit tests for canonical payload equivalence across reordered object properties and items sorted by productId in tests/unit/orders/canonical-payload.test.ts
-- [ ] T066 [P] [US3] Write failing integration tests for same key and same payload returning the same order without extra reservation or outbox in tests/integration/idempotency-replay.test.ts
-- [ ] T067 [P] [US3] Write failing integration tests for same key and different payload returning 409 without stock or order changes in tests/integration/idempotency-conflict.test.ts
-- [ ] T068 [P] [US3] Write failing integration tests for simultaneous same-key same-payload and same-key different-payload requests in tests/integration/idempotency-concurrency.test.ts
-- [ ] T069 [P] [US3] Write failing contract tests documenting 202 replay and 409 IDEMPOTENCY_CONFLICT examples in tests/contract/checkout-idempotency.test.ts
+- [X] T065 [P] [US3] Write failing unit tests for canonical payload equivalence across reordered object properties and items sorted by productId in tests/unit/orders/canonical-payload.test.ts
+- [X] T066 [P] [US3] Write failing integration tests for same key and same payload returning the same order without extra reservation or outbox in tests/integration/idempotency-replay.test.ts
+- [X] T067 [P] [US3] Write failing integration tests for same key and different payload returning 409 without stock or order changes in tests/integration/idempotency-conflict.test.ts
+- [X] T068 [P] [US3] Write failing integration tests for simultaneous same-key same-payload and same-key different-payload requests in tests/integration/idempotency-concurrency.test.ts
+- [X] T069 [P] [US3] Write failing contract tests documenting 202 replay and 409 IDEMPOTENCY_CONFLICT examples in tests/contract/checkout-idempotency.test.ts
 
 ### Implementation for User Story 3
 
-- [ ] T070 [US3] Extend AcceptCheckoutUseCase to return committed replay result when requestHash matches in src/modules/orders/application/accept-checkout.ts
-- [ ] T071 [US3] Extend Prisma checkout repository to wait for and read the committed idempotency decision after key conflict in src/adapters/database/checkout-repository.ts
-- [ ] T072 [US3] Add idempotency conflict error mapping without mutating order, stock or reservation in src/api/routes/checkout.ts
-- [ ] T073 [US3] Add idempotency result logging and metrics for creation, replay and conflict without logging payload in src/observability/checkout-metrics.ts
+- [X] T070 [US3] Extend AcceptCheckoutUseCase to return committed replay result when requestHash matches in src/modules/orders/application/accept-checkout.ts
+- [X] T071 [US3] Extend Prisma checkout repository to wait for and read the committed idempotency decision after key conflict in src/adapters/database/checkout-repository.ts
+- [X] T072 [US3] Add idempotency conflict error mapping without mutating order, stock or reservation in src/api/routes/checkout.ts
+- [X] T073 [US3] Add idempotency result logging and metrics for creation, replay and conflict without logging payload in src/observability/checkout-metrics.ts
 
 **Checkpoint**: User Story 3 is independently functional and testable.
 
@@ -171,17 +171,17 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 > Write these tests FIRST and confirm each fails for the expected reason.
 
-- [ ] T074 [P] [US4] Write failing contract tests for GET /orders/{orderId}/status 200, 400, 404, terminal error and headers in tests/contract/order-status.test.ts
-- [ ] T075 [P] [US4] Write failing unit tests for order status response mapping and final error exposure in tests/unit/orders/order-status-view.test.ts
-- [ ] T076 [P] [US4] Write failing integration tests for reading pending, processing, retrying, confirmed, failed and missing orders in tests/integration/order-status.test.ts
+- [X] T074 [P] [US4] Write failing contract tests for GET /orders/{orderId}/status 200, 400, 404, terminal error and headers in tests/contract/order-status.test.ts
+- [X] T075 [P] [US4] Write failing unit tests for order status response mapping and final error exposure in tests/unit/orders/order-status-view.test.ts
+- [X] T076 [P] [US4] Write failing integration tests for reading pending, processing, retrying, confirmed, failed and missing orders in tests/integration/order-status.test.ts
 
 ### Implementation for User Story 4
 
-- [ ] T077 [P] [US4] Define order status query port and response DTO in src/modules/orders/ports/order-status-port.ts
-- [ ] T078 [US4] Implement GetOrderStatusUseCase with terminal-state stability and error mapping in src/modules/orders/application/get-order-status.ts
-- [ ] T079 [US4] Implement Prisma order status repository in src/adapters/database/order-status-repository.ts
-- [ ] T080 [US4] Implement GET /orders/{orderId}/status route with Zod request/response schema binding in src/api/routes/order-status.ts
-- [ ] T081 [US4] Register order status route in API builder in src/api/app.ts
+- [X] T077 [P] [US4] Define order status query port and response DTO in src/modules/orders/ports/order-status-port.ts
+- [X] T078 [US4] Implement GetOrderStatusUseCase with terminal-state stability and error mapping in src/modules/orders/application/get-order-status.ts
+- [X] T079 [US4] Implement Prisma order status repository in src/adapters/database/order-status-repository.ts
+- [X] T080 [US4] Implement GET /orders/{orderId}/status route with Zod request/response schema binding in src/api/routes/order-status.ts
+- [X] T081 [US4] Register order status route in API builder in src/api/app.ts
 
 **Checkpoint**: User Story 4 is independently functional and testable.
 

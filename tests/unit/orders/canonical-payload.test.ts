@@ -25,6 +25,22 @@ describe("checkout canonical payload", () => {
     expect(hashCanonicalPayload(first)).toBe(hashCanonicalPayload(second));
   });
 
+  it("emits deterministic canonical JSON with sorted item order and object keys", () => {
+    const payload = validateCheckoutPayload({
+      items: [
+        { quantity: 1, productId: "case-product-002" },
+        { productId: "case-product-001", quantity: 2 },
+      ],
+    });
+
+    expect(JSON.parse(canonicalizeCheckoutPayload(payload))).toEqual({
+      items: [
+        { productId: "case-product-001", quantity: 2 },
+        { productId: "case-product-002", quantity: 1 },
+      ],
+    });
+  });
+
   it("rejects duplicate products, invalid quantities and unknown fields", () => {
     expect(() =>
       validateCheckoutPayload({

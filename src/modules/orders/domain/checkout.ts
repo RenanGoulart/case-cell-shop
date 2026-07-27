@@ -1,9 +1,10 @@
 import { AppError } from "../../../shared/errors.js";
 import type { CheckoutPayload } from "./canonical-payload.js";
+import type { OrderStatus } from "./order-state.js";
 
 export interface AcceptedCheckoutSnapshot {
   readonly orderId: string;
-  readonly status: "pending";
+  readonly status: OrderStatus;
 }
 
 export type CheckoutFailure =
@@ -26,10 +27,13 @@ export function validateCheckoutItemsForAcceptance(
   return [...items].sort((left, right) => left.productId.localeCompare(right.productId));
 }
 
-export function buildAcceptedCheckoutSnapshot(orderId: string): AcceptedCheckoutSnapshot {
+export function buildAcceptedCheckoutSnapshot(
+  orderId: string,
+  status: OrderStatus = "pending",
+): AcceptedCheckoutSnapshot {
   return {
     orderId,
-    status: "pending",
+    status,
   };
 }
 

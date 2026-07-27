@@ -5,6 +5,9 @@ export interface CheckoutMetrics {
   recordInvalid(): void;
   recordProductNotFound(): void;
   recordInsufficientStock(): void;
+  recordCreated(): void;
+  recordReplay(): void;
+  recordConflict(): void;
 }
 
 export function createCheckoutMetrics(registry: Registry): CheckoutMetrics {
@@ -28,6 +31,21 @@ export function createCheckoutMetrics(registry: Registry): CheckoutMetrics {
     help: "Checkout requests rejected due to insufficient stock",
     registers: [registry],
   });
+  const idempotencyCreated = new Counter({
+    name: "casecellshop_checkout_idempotency_created_total",
+    help: "Checkout idempotency keys claimed for new orders",
+    registers: [registry],
+  });
+  const idempotencyReplay = new Counter({
+    name: "casecellshop_checkout_idempotency_replay_total",
+    help: "Checkout idempotency replays returning an existing order",
+    registers: [registry],
+  });
+  const idempotencyConflict = new Counter({
+    name: "casecellshop_checkout_idempotency_conflict_total",
+    help: "Checkout idempotency key reuse conflicts",
+    registers: [registry],
+  });
   const latency = new Histogram({
     name: "casecellshop_checkout_accept_duration_ms",
     help: "Checkout acceptance latency in milliseconds",
@@ -48,6 +66,15 @@ export function createCheckoutMetrics(registry: Registry): CheckoutMetrics {
     },
     recordInsufficientStock() {
       insufficient.inc();
+    },
+    recordCreated() {
+      idempotencyCreated.inc();
+    },
+    recordReplay() {
+      idempotencyReplay.inc();
+    },
+    recordConflict() {
+      idempotencyConflict.inc();
     },
   };
 }

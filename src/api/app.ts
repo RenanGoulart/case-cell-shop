@@ -12,11 +12,13 @@ import { RedisCatalogCache } from "../adapters/cache/catalog-cache.js";
 import { createRedisClientAdapter } from "../adapters/cache/redis-client.js";
 import { PrismaCatalogRepository } from "../adapters/database/catalog-repository.js";
 import { PrismaCheckoutRepository } from "../adapters/database/checkout-repository.js";
+import { PrismaOrderStatusRepository } from "../adapters/database/order-status-repository.js";
 import { createPrismaClient } from "../adapters/database/prisma.js";
 import type { AppConfig } from "../config/env.js";
 import { InvalidateCatalogUseCase } from "../modules/catalog/application/invalidate-catalog.js";
 import { ListProductsUseCase } from "../modules/catalog/application/list-products.js";
 import { AcceptCheckoutUseCase } from "../modules/orders/application/accept-checkout.js";
+import { GetOrderStatusUseCase } from "../modules/orders/application/get-order-status.js";
 import { createCatalogMetrics } from "../observability/catalog-metrics.js";
 import { createCheckoutMetrics } from "../observability/checkout-metrics.js";
 import { createLogger } from "../observability/logger.js";
@@ -31,11 +33,17 @@ import {
   checkoutRouteSchema,
   type CheckoutRouteDependencies,
 } from "./routes/checkout.js";
+import {
+  createOrderStatusHandler,
+  orderStatusRouteSchema,
+  type OrderStatusRouteDependencies,
+} from "./routes/order-status.js";
 import { systemSleeper } from "../shared/ports/runtime.js";
 
 export interface AppDependencies {
   readonly products?: ProductsRouteDependencies;
   readonly checkout?: CheckoutRouteDependencies;
+  readonly orderStatus?: OrderStatusRouteDependencies;
 }
 
 export async function buildApp(config: AppConfig, dependencies: AppDependencies = {}) {
@@ -118,7 +126,9 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
   });
 
   const hasDependencyOverrides =
-    dependencies.products !== undefined || dependencies.checkout !== undefined;
+    dependencies.products !== undefined ||
+    dependencies.checkout !== undefined ||
+    dependencies.orderStatus !== undefined;
 
   const productRouteDependencies =
     dependencies.products ??
@@ -142,6 +152,17 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
     createCheckoutHandler(checkoutRouteDependencies),
   );
 
+  const orderStatusRouteDependencies =
+    dependencies.orderStatus ??
+    (hasDependencyOverrides
+      ? createStubOrderStatusRouteDependencies()
+      : createDefaultOrderStatusRouteDependencies(config));
+  app.get(
+    "/orders/:orderId/status",
+    { schema: orderStatusRouteSchema },
+    createOrderStatusHandler(orderStatusRouteDependencies),
+  );
+
   return app;
 }
 
@@ -157,6 +178,14 @@ function createStubCheckoutRouteDependencies(): CheckoutRouteDependencies {
   return {
     acceptCheckout: {
       execute: () => Promise.reject(new Error("Checkout route dependency not configured")),
+    },
+  };
+}
+
+function createStubOrderStatusRouteDependencies(): OrderStatusRouteDependencies {
+  return {
+    getOrderStatus: {
+      execute: () => Promise.reject(new Error("Order status route dependency not configured")),
     },
   };
 }
@@ -187,6 +216,17 @@ function createDefaultProductsRouteDependencies(
   };
 }
 
+function createDefaultOrderStatusRouteDependencies(
+  config: AppConfig,
+): OrderStatusRouteDependencies {
+  const prisma = createPrismaClient(config.databaseUrl);
+  const repository = new PrismaOrderStatusRepository(prisma);
+
+  return {
+    getOrderStatus: new GetOrderStatusUseCase(repository),
+  };
+}
+
 function createDefaultCheckoutRouteDependencies(
   config: AppConfig,
   registry: ReturnType<typeof createApiMetricsRegistry>["registry"],
@@ -196,13 +236,12 @@ function createDefaultCheckoutRouteDependencies(
   const cache = new RedisCatalogCache(redis);
   const repository = new PrismaCheckoutRepository(prisma);
   const metrics = createCheckoutMetrics(registry);
-  void metrics;
-
   return {
     acceptCheckout: new AcceptCheckoutUseCase(
       {
         repository,
         invalidateCatalog: new InvalidateCatalogUseCase(cache),
+        idempotencyMetrics: metrics,
       },
       {
         idempotencyRetentionHours: config.idempotencyRetentionHours,

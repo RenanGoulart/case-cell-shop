@@ -26,7 +26,7 @@ export const checkoutRequestSchema = checkoutPayloadSchema;
 
 export const checkoutAcceptedResponseSchema = z.object({
   orderId: z.uuid(),
-  status: z.literal("pending"),
+  status: z.enum(orderStatuses),
 });
 
 export const orderStatusParamsSchema = z.object({

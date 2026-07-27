@@ -10,7 +10,11 @@ import {
   validateCheckoutItemsForAcceptance,
   type AcceptedCheckoutSnapshot,
 } from "../domain/checkout.js";
-import type { CatalogInvalidationPort, CheckoutRepository } from "../ports/order-ports.js";
+import type {
+  CatalogInvalidationPort,
+  CheckoutIdempotencyMetrics,
+  CheckoutRepository,
+} from "../ports/order-ports.js";
 import {
   cryptoUuidGenerator,
   systemClock,
@@ -21,6 +25,7 @@ import {
 export interface AcceptCheckoutDependencies {
   readonly repository: CheckoutRepository;
   readonly invalidateCatalog?: CatalogInvalidationPort;
+  readonly idempotencyMetrics?: CheckoutIdempotencyMetrics;
 }
 
 export interface AcceptCheckoutConfig {
@@ -81,16 +86,26 @@ export class AcceptCheckoutUseCase {
       },
     });
 
-    if (result.outcome !== "accepted") {
-      throw mapCheckoutFailureToError(
-        result.outcome === "product_not_found"
-          ? { reason: result.outcome, productIds: result.productIds }
-          : { reason: result.outcome },
-      );
+    if (result.outcome === "accepted") {
+      this.dependencies.idempotencyMetrics?.recordCreated();
+      await this.dependencies.invalidateCatalog?.invalidate().catch(() => undefined);
+      return buildAcceptedCheckoutSnapshot(result.orderId);
     }
 
-    await this.dependencies.invalidateCatalog?.invalidate().catch(() => undefined);
-    return buildAcceptedCheckoutSnapshot(result.orderId);
+    if (result.outcome === "replayed") {
+      this.dependencies.idempotencyMetrics?.recordReplay();
+      return buildAcceptedCheckoutSnapshot(result.orderId, result.status);
+    }
+
+    if (result.outcome === "idempotency_conflict") {
+      this.dependencies.idempotencyMetrics?.recordConflict();
+    }
+
+    throw mapCheckoutFailureToError(
+      result.outcome === "product_not_found"
+        ? { reason: result.outcome, productIds: result.productIds }
+        : { reason: result.outcome },
+    );
   }
 }
 
