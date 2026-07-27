@@ -111,24 +111,24 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 > Write these tests FIRST and confirm each fails for the expected reason.
 
-- [ ] T050 [P] [US2] Write failing contract tests for POST /checkout 202, 400, 404, 409, error schema and headers in tests/contract/checkout.test.ts
-- [ ] T051 [P] [US2] Write failing unit tests for checkout input validation, duplicate product rejection and all-or-nothing decision mapping in tests/unit/orders/checkout-validation.test.ts
-- [ ] T052 [P] [US2] Write failing integration tests for atomic stock update, rollback on second item failure and no negative stock in tests/integration/checkout-stock.test.ts
-- [ ] T053 [P] [US2] Write failing integration tests for concurrent checkouts with different keys disputing limited stock in tests/integration/checkout-concurrency.test.ts
-- [ ] T054 [P] [US2] Write failing integration tests proving order, order items, reservation, idempotency record and outbox event commit or rollback together in tests/integration/checkout-transaction.test.ts
-- [ ] T055 [P] [US2] Write failing message schema test for initial outbox payload against contracts/order-processing-message.schema.json in tests/contract/order-processing-message.test.ts
+- [X] T050 [P] [US2] Write failing contract tests for POST /checkout 202, 400, 404, 409, error schema and headers in tests/contract/checkout.test.ts
+- [X] T051 [P] [US2] Write failing unit tests for checkout input validation, duplicate product rejection and all-or-nothing decision mapping in tests/unit/orders/checkout-validation.test.ts
+- [X] T052 [P] [US2] Write failing integration tests for atomic stock update, rollback on second item failure and no negative stock in tests/integration/checkout-stock.test.ts
+- [X] T053 [P] [US2] Write failing integration tests for concurrent checkouts with different keys disputing limited stock in tests/integration/checkout-concurrency.test.ts
+- [X] T054 [P] [US2] Write failing integration tests proving order, order items, reservation, idempotency record and outbox event commit or rollback together in tests/integration/checkout-transaction.test.ts
+- [X] T055 [P] [US2] Write failing message schema test for initial outbox payload against contracts/order-processing-message.schema.json in tests/contract/order-processing-message.test.ts
 
 ### Implementation for User Story 2
 
-- [ ] T056 [P] [US2] Define order, order item, reservation and outbox ports for checkout in src/modules/orders/ports/order-ports.ts
-- [ ] T057 [P] [US2] Implement checkout domain validation types and accepted snapshot model in src/modules/orders/domain/checkout.ts
-- [ ] T058 [US2] Implement AcceptCheckoutUseCase transaction orchestration and 202 response model in src/modules/orders/application/accept-checkout.ts
-- [ ] T059 [US2] Implement Prisma checkout repository with idempotency claim, product load, ordered conditional stock updates and rollback mapping in src/adapters/database/checkout-repository.ts
-- [ ] T060 [US2] Implement Prisma reservation and outbox creation inside checkout transaction in src/adapters/database/checkout-repository.ts
-- [ ] T061 [US2] Implement checkout route with Idempotency-Key header, Zod schema validation and error translation in src/api/routes/checkout.ts
-- [ ] T062 [US2] Register checkout route in API builder in src/api/app.ts
-- [ ] T063 [US2] Implement best-effort catalog invalidation after committed availability changes in src/modules/catalog/application/invalidate-catalog.ts
-- [ ] T064 [US2] Add checkout metrics for created, invalid, product not found, insufficient stock and accepted latency in src/observability/checkout-metrics.ts
+- [X] T056 [P] [US2] Define order, order item, reservation and outbox ports for checkout in src/modules/orders/ports/order-ports.ts
+- [X] T057 [P] [US2] Implement checkout domain validation types and accepted snapshot model in src/modules/orders/domain/checkout.ts
+- [X] T058 [US2] Implement AcceptCheckoutUseCase transaction orchestration and 202 response model in src/modules/orders/application/accept-checkout.ts
+- [X] T059 [US2] Implement Prisma checkout repository with idempotency claim, product load, ordered conditional stock updates and rollback mapping in src/adapters/database/checkout-repository.ts
+- [X] T060 [US2] Implement Prisma reservation and outbox creation inside checkout transaction in src/adapters/database/checkout-repository.ts
+- [X] T061 [US2] Implement checkout route with Idempotency-Key header, Zod schema validation and error translation in src/api/routes/checkout.ts
+- [X] T062 [US2] Register checkout route in API builder in src/api/app.ts
+- [X] T063 [US2] Implement best-effort catalog invalidation after committed availability changes in src/modules/catalog/application/invalidate-catalog.ts
+- [X] T064 [US2] Add checkout metrics for created, invalid, product not found, insufficient stock and accepted latency in src/observability/checkout-metrics.ts
 
 **Checkpoint**: User Story 2 is independently functional and testable.
 
