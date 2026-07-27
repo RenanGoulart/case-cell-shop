@@ -52,7 +52,9 @@ ERP_FORCED_RESULT=
 ```
 
 Credenciais do Compose são somente locais e devem permanecer no `.env.example`; nenhuma credencial
-de produção faz parte desta feature.
+de produção faz parte desta feature. API, worker, migrate e test validam as variáveis de ambiente
+com Zod durante a inicialização e falham imediatamente com erro descritivo quando uma variável
+obrigatória está ausente ou inválida.
 
 ## Start Everything
 
@@ -286,7 +288,8 @@ docker compose logs api worker
 
 Validar:
 
-- OpenAPI corresponde a [`contracts/openapi.yaml`](./contracts/openapi.yaml);
+- OpenAPI corresponde a [`contracts/openapi.yaml`](./contracts/openapi.yaml) e é gerado a partir dos
+  schemas Zod de entradas, respostas de sucesso e envelopes de erro sempre que possível;
 - mensagem corresponde a
   [`contracts/order-processing-message.schema.json`](./contracts/order-processing-message.schema.json);
 - logs HTTP contêm `requestId`/`correlationId`;

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+build/
+coverage/
+src/generated/prisma/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

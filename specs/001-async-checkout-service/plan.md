@@ -17,8 +17,8 @@ testável. As regras de domínio não dependem de Fastify, Prisma, Redis, Rabbit
 **Language/Version**: Node.js 24 LTS com TypeScript 6.0, ESM e configuração estrita
 
 **Primary Dependencies**: Fastify 5, Prisma ORM 7 com `@prisma/adapter-pg`, `pg`, cliente Redis
-oficial, `amqplib`, Pino 10, `@fastify/swagger` 9, `@fastify/swagger-ui` 5, `prom-client` 15 e
-`@faker-js/faker` 10.5 para o seed local. Ferramentas de desenvolvimento: ESLint 10.8,
+oficial, `amqplib`, Pino 10, `@fastify/swagger` 9, `@fastify/swagger-ui` 5, `@fastify/type-provider-zod`, Zod 4,
+`prom-client` 15 e `@faker-js/faker` 10.5 para o seed local. Ferramentas de desenvolvimento: ESLint 10.8,
 `@eslint/js` 10.8, `typescript-eslint` 8.65, `globals` 17, Prettier 3.9 e
 `eslint-config-prettier` 10; versões exatas permanecem fixadas pelo lockfile
 
@@ -34,8 +34,9 @@ de código exige `npm run verify` aprovado, reunindo lint, formatação, typeche
 **Project Type**: Backend web service modular, um pacote e uma imagem, com processos `api` e
 `worker` separados
 
-**API Contract**: OpenAPI 3.0.3 gerado dos JSON Schemas das rotas Fastify e validado contra
-`contracts/openapi.yaml`; contrato operacional separado para métricas do worker
+**API Contract**: OpenAPI 3.0.3 gerado a partir dos schemas Zod reutilizados nas rotas
+Fastify sempre que possível, incluindo entradas, respostas de sucesso e erros documentados, e
+validado contra `contracts/openapi.yaml`; contrato operacional separado para métricas do worker
 
 **Observability**: Pino em JSON; `requestId` e `correlationId` nos fluxos HTTP, `correlationId` e
 `orderId` no worker; registries Prometheus separados para API e worker; trace real fora do escopo,
@@ -78,7 +79,7 @@ Não existem itens `NEEDS CLARIFICATION` após a pesquisa da Phase 0.
 | Qualidade estática e aprovação | PASS | Flat config tipado, Prettier separado, `--max-warnings=0`, typecheck e todas as suites compõem `npm run verify`, obrigatório para toda alteração de código. |
 | Isolamento do negócio | PASS | Domínio e casos de uso dependem de ports; adapters implementam Fastify, Prisma, Redis, RabbitMQ e ERP. |
 | Consistência | PASS | Update condicional, claim idempotente único, reserva e outbox pertencem à mesma transação PostgreSQL. |
-| Contrato e observabilidade | PASS | JSON Schema/OpenAPI, Pino correlacionado e métricas Prometheus fazem parte dos contratos e testes. |
+| Contrato e observabilidade | PASS | Zod/OpenAPI, Pino correlacionado e métricas Prometheus fazem parte dos contratos e testes. |
 | Execução e integrações | PASS | Compose inicia aplicação e dependências; ERP é simulado com resultados forçáveis e probabilísticos. |
 | Documentação e IA | PASS | Quickstart, README e PROMPTS.md são entregáveis explícitos; simplificações permanecem documentadas. |
 
@@ -165,7 +166,7 @@ As decisões e alternativas estão consolidadas em [research.md](./research.md).
 orientam o design são:
 
 1. usar Node 24 LTS e dependências em majors compatíveis, fixadas por lockfile;
-2. usar JSON Schema como fonte única para validação, serialização e OpenAPI;
+2. usar Zod como fonte primária para validar variáveis de ambiente, entradas HTTP e schemas de resposta, reutilizando esses schemas na geração OpenAPI sempre que possível;
 3. executar SQL parametrizado via Prisma para update condicional e claims que exigem recursos
    específicos do PostgreSQL;
 4. usar entrega pelo menos uma vez com publisher confirms, ack manual e consumidor idempotente;
@@ -179,6 +180,22 @@ orientam o design são:
    reprova warnings, falhas de formatação, typecheck ou qualquer suite de testes.
 
 ## Phase 1: Design
+
+### Validação de configuração e contratos com Zod
+
+A aplicação valida todas as variáveis de ambiente durante a inicialização usando Zod. Variáveis
+obrigatórias ausentes, URLs inválidas, portas fora do intervalo, probabilidades fora de `0..1` ou
+valores incompatíveis com enums fazem API, worker, migrate ou test falharem imediatamente com erro
+descritivo, antes de abrir socket, conectar workers ou executar fluxos de negócio. Defaults locais
+continuam permitidos somente quando documentados em `.env.example` e no quickstart.
+
+As entradas HTTP são definidas e validadas com Zod. Os mesmos schemas Zod devem ser reutilizados na
+geração dos contratos OpenAPI sempre que a integração Fastify/Swagger permitir; quando uma conversão
+for necessária, o schema convertido deve ser derivado do Zod, não reescrito manualmente. Respostas de
+sucesso e envelopes de erro também possuem schemas documentados, incluindo headers de correlação e
+códigos HTTP. O contrato versionado de mensagem assíncrona permanece publicado como JSON Schema em
+`contracts/order-processing-message.schema.json`, derivado ou validado contra a definição Zod
+correspondente.
 
 ### Gate estático e aprovação de código
 
@@ -277,7 +294,9 @@ forçados e distribuição 80/10/5/5, e não representa uma integração externa
 
 ### Observabilidade
 
-Fastify gera/valida `requestId` e `correlationId`, devolve ambos em headers e persiste a correlação
+Fastify usa schemas Zod para validar headers de correlação, entradas e respostas HTTP documentadas.
+O erro de validação é traduzido para o envelope uniforme antes do log/metrics. Fastify gera/valida
+`requestId` e `correlationId`, devolve ambos em headers e persiste a correlação
 na outbox. Pino usa child loggers. API e worker têm registries Prometheus independentes; IDs de
 alta cardinalidade nunca são labels. `/metrics` da API e do worker são contratos operacionais.
 Um `TracePort` no-op documentado preserva o ponto de extensão sem instalar OpenTelemetry.
@@ -290,8 +309,8 @@ adapters; testes de integração vêm antes do código SQL/conectores; contratos
 - **Unit**: gerador Faker com 50 produtos deterministicos e validos, canonicalizacao/hash, rejeicao
   de duplicados, estados, retry, timeout, expiracao, distribuição com RNG seeded de 1.000 tentativas
   e tolerância de 4 pontos percentuais, cache circuit breaker e decisoes idempotentes.
-- **Contract**: todos os status/corpos/headers, `204` sem corpo, erro uniforme, OpenAPI completo e
-  schemas das mensagens.
+- **Contract**: todos os status/corpos/headers, `204` sem corpo, erro uniforme, schemas Zod de
+  entrada e resposta reutilizados no OpenAPI, e schemas das mensagens.
 - **Integration**: seed inicial/repetido/parcial sem reset de estoque, constraint da chave,
   requests simultâneos, rollback multi-item, estoque nunca negativo, geração de catálogo, Redis
   hit/miss/falhas, outbox e claims concorrentes, confirms, redelivery e DLQ.

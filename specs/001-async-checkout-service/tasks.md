@@ -20,18 +20,18 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 **Purpose**: Initialize the Node.js, TypeScript, Fastify, Prisma, Redis, RabbitMQ and quality-gate foundation.
 
-- [ ] T001 Create npm project metadata, ESM module settings, Node 24 engine, scripts for dev/build/start/lint/format/typecheck/test/verify in package.json
-- [ ] T002 [P] Configure strict TypeScript ESM compilation and path aliases in tsconfig.json
-- [ ] T003 [P] Configure Vitest projects for unit, contract, integration and e2e suites in vitest.config.ts
-- [ ] T004 [P] Configure ESLint flat config with typed TypeScript rules, Node globals, ignores and zero-warning policy in eslint.config.mjs
-- [ ] T005 [P] Configure Prettier formatting and generated-output ignores in .prettierrc.json and .prettierignore
-- [ ] T006 [P] Create environment example with local defaults and no production secrets in .env.example
-- [ ] T007 Create Docker image for api, worker, migrate and test commands in Dockerfile
-- [ ] T008 Create Docker Compose services for postgres, redis, rabbitmq, migrate, api, worker and test profile in docker-compose.yml
-- [ ] T009 [P] Create application configuration loader with typed env parsing in src/config/env.ts
-- [ ] T010 [P] Create shared clock, sleeper, UUID and RNG ports for deterministic tests in src/shared/ports/runtime.ts
-- [ ] T011 [P] Create test helpers for fake clock, fake sleeper and seeded RNG in tests/helpers/runtime.ts
-- [ ] T012 Run npm install after package.json is defined and generate package-lock.json
+- [X] T001 Create npm project metadata, ESM module settings, Node 24 engine, Zod/Fastify schema dependencies and scripts for dev/build/start/lint/format/typecheck/test/verify in package.json
+- [X] T002 [P] Configure strict TypeScript ESM compilation and path aliases in tsconfig.json
+- [X] T003 [P] Configure Vitest projects for unit, contract, integration and e2e suites in vitest.config.ts
+- [X] T004 [P] Configure ESLint flat config with typed TypeScript rules, Node globals, ignores and zero-warning policy in eslint.config.mjs
+- [X] T005 [P] Configure Prettier formatting and generated-output ignores in .prettierrc.json and .prettierignore
+- [X] T006 [P] Create environment example with local defaults and no production secrets in .env.example
+- [X] T007 Create Docker image for api, worker, migrate and test commands in Dockerfile
+- [X] T008 Create Docker Compose services for postgres, redis, rabbitmq, migrate, api, worker and test profile in docker-compose.yml
+- [X] T009 [P] Create application configuration loader with Zod env validation, typed parsing and fail-fast descriptive errors in src/config/env.ts
+- [X] T010 [P] Create shared clock, sleeper, UUID and RNG ports for deterministic tests in src/shared/ports/runtime.ts
+- [X] T011 [P] Create test helpers for fake clock, fake sleeper and seeded RNG in tests/helpers/runtime.ts
+- [X] T012 Run npm install after package.json is defined and generate package-lock.json
 
 ---
 
@@ -50,15 +50,15 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [ ] T019 Implement checkout payload canonicalization, duplicate product rejection and SHA-256 hashing in src/modules/orders/domain/canonical-payload.ts
 - [ ] T020 Implement ERP simulator decision model and forced/probabilistic result types in src/modules/orders/domain/erp-result.ts
 - [ ] T021 Define shared domain errors and HTTP-safe error codes in src/shared/errors.ts
-- [ ] T022 Define Fastify JSON schemas for products, checkout, order status, errors and metrics headers in src/api/schemas/http.ts
-- [ ] T023 Define order processing message JSON schema export aligned to contracts/order-processing-message.schema.json in src/worker/schemas/order-processing-message.ts
+- [ ] T022 Define Zod schemas for products, checkout, order status, success responses, error envelopes and metrics headers in src/api/schemas/http.ts
+- [ ] T023 Define Zod order processing message schema and JSON Schema export aligned to contracts/order-processing-message.schema.json in src/worker/schemas/order-processing-message.ts
 - [ ] T024 Create Prisma schema with products, catalog state, orders, order items, idempotency records, stock reservations, reservation items, processing attempts and outbox events in prisma/schema.prisma
 - [ ] T025 Create initial migration with PostgreSQL enums, checks, partial indexes, unique constraints and conditional claim indexes in prisma/migrations/001_initial/migration.sql
 - [ ] T026 Configure Prisma 7 adapter and generated client location in prisma.config.ts
 - [ ] T027 Write failing integration tests for deterministic Faker seed, idempotent re-run and CatalogState version increment behavior in tests/integration/seed.test.ts
 - [ ] T028 Implement deterministic 50-product Faker seed with non-destructive createMany and conditional catalog version increment in prisma/seed.ts
 - [ ] T029 Create Prisma client factory and transaction helper with no network calls inside transactions in src/adapters/database/prisma.ts
-- [ ] T030 Create Fastify app builder with requestId, correlationId, error envelope, Swagger and metrics plugins in src/api/app.ts
+- [ ] T030 Create Fastify app builder with Zod type provider, requestId, correlationId, error envelope, Swagger/OpenAPI and metrics plugins in src/api/app.ts
 - [ ] T031 Create API process entrypoint that opens the Fastify socket only from main in src/api/main.ts
 - [ ] T032 Create worker process entrypoint and lifecycle wiring without business logic in src/worker/main.ts
 - [ ] T033 Create Redis client adapter shell with health state and namespace constants in src/adapters/cache/redis-client.ts
@@ -93,7 +93,7 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [ ] T044 [US1] Implement ListProductsUseCase with cache-aside, TTL, CatalogState version validation, 204 empty result, degraded Redis behavior and configurable 500ms artificial database delay for local cache validation in src/modules/catalog/application/list-products.ts
 - [ ] T045 [US1] Implement Prisma catalog repository for products and CatalogState reads in src/adapters/database/catalog-repository.ts
 - [ ] T046 [US1] Implement Redis catalog cache adapter with key casecellshop:v1:products, TTL, payload validation and circuit breaker in src/adapters/cache/catalog-cache.ts
-- [ ] T047 [US1] Implement catalog route and JSON schema binding for GET /products in src/api/routes/products.ts
+- [ ] T047 [US1] Implement catalog route with Zod request/response schema binding for GET /products in src/api/routes/products.ts
 - [ ] T048 [US1] Register catalog route and API metrics endpoint in src/api/app.ts
 - [ ] T049 [US1] Add catalog metrics for duration, hit, miss, Redis failures, fallback and degraded mode transitions in src/observability/catalog-metrics.ts
 
@@ -125,7 +125,7 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [ ] T058 [US2] Implement AcceptCheckoutUseCase transaction orchestration and 202 response model in src/modules/orders/application/accept-checkout.ts
 - [ ] T059 [US2] Implement Prisma checkout repository with idempotency claim, product load, ordered conditional stock updates and rollback mapping in src/adapters/database/checkout-repository.ts
 - [ ] T060 [US2] Implement Prisma reservation and outbox creation inside checkout transaction in src/adapters/database/checkout-repository.ts
-- [ ] T061 [US2] Implement checkout route with Idempotency-Key header, schema validation and error translation in src/api/routes/checkout.ts
+- [ ] T061 [US2] Implement checkout route with Idempotency-Key header, Zod schema validation and error translation in src/api/routes/checkout.ts
 - [ ] T062 [US2] Register checkout route in API builder in src/api/app.ts
 - [ ] T063 [US2] Implement best-effort catalog invalidation after committed availability changes in src/modules/catalog/application/invalidate-catalog.ts
 - [ ] T064 [US2] Add checkout metrics for created, invalid, product not found, insufficient stock and accepted latency in src/observability/checkout-metrics.ts
@@ -180,7 +180,7 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [ ] T077 [P] [US4] Define order status query port and response DTO in src/modules/orders/ports/order-status-port.ts
 - [ ] T078 [US4] Implement GetOrderStatusUseCase with terminal-state stability and error mapping in src/modules/orders/application/get-order-status.ts
 - [ ] T079 [US4] Implement Prisma order status repository in src/adapters/database/order-status-repository.ts
-- [ ] T080 [US4] Implement GET /orders/{orderId}/status route and schema binding in src/api/routes/order-status.ts
+- [ ] T080 [US4] Implement GET /orders/{orderId}/status route with Zod request/response schema binding in src/api/routes/order-status.ts
 - [ ] T081 [US4] Register order status route in API builder in src/api/app.ts
 
 **Checkpoint**: User Story 4 is independently functional and testable.

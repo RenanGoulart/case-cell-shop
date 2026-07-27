@@ -33,7 +33,7 @@ RabbitMQ e ERP. Builders não abrem sockets nem conexões ao serem importados.
 
 **Rationale**: processos separados isolam o ciclo HTTP do processamento assíncrono sem criar
 microsserviços, workspaces, contratos internos duplicados ou deploys independentes. A mesma base
-compartilha regras, schemas de mensagens, configuração e observabilidade.
+compartilha regras, schemas Zod, schemas de mensagens, configuração e observabilidade.
 
 **Alternatives considered**:
 
@@ -41,24 +41,32 @@ compartilha regras, schemas de mensagens, configuração e observabilidade.
 - Dois pacotes/repos: rejeitados por complexidade sem requisito.
 - Framework adicional de jobs: rejeitado; outbox, RabbitMQ e loops pequenos são suficientes.
 
-## 3. Fastify, schemas e OpenAPI
+## 3. Fastify, Zod e OpenAPI
 
-**Decision**: JSON Schemas literais registrados no Fastify são a fonte de validação, serialização
-e geração dinâmica de OpenAPI 3.0.3. Registrar `@fastify/swagger` antes das rotas, usar `$id`/`$ref`,
-declarar headers, params, body e cada resposta, e traduzir validações para o envelope comum de erro.
+**Decision**: Zod é a fonte primária para validar variáveis de ambiente, headers, params, bodies,
+queries e respostas HTTP. As rotas Fastify usam schemas Zod por meio de integração compatível com
+Fastify e Swagger, reutilizando os schemas na geração OpenAPI 3.0.3 sempre que possível. Quando o
+OpenAPI exigir JSON Schema, a conversão deve ser derivada do Zod. Respostas de sucesso e envelopes
+de erro também são definidos/documentados por schema. O contrato assíncrono permanece publicado como
+JSON Schema versionado, derivado ou validado contra o schema Zod da mensagem.
 
-**Rationale**: uma única fonte reduz divergência entre runtime e documentação. Schemas de resposta
-impedem exposição de campos internos e permitem testes estruturais do documento gerado.
+**Rationale**: Zod centraliza validação runtime e inferência TypeScript, reduz DTOs duplicados e
+permite falhar cedo com erros descritivos para configuração inválida. Usar schemas Zod nas rotas
+mantém entradas e respostas alinhadas ao contrato OpenAPI sem transformar `contracts/openapi.yaml`
+em uma fonte independente sujeita a drift.
 
 **Alternatives considered**:
 
 - OpenAPI estático como fonte independente: rejeitado pelo risco de drift.
-- Zod/TypeBox: não necessários para o case; adicionariam dependência e conversão.
-- Decorators: rejeitados porque JSON Schema já atende Fastify e OpenAPI.
+- JSON Schemas literais registrados manualmente no Fastify: rejeitados após a decisão de validar
+  env/API com Zod, pois duplicariam regras e tipos.
+- TypeBox: viável para Fastify, mas menos direto para validação de configuração e parsing de env.
+- Decorators: rejeitados por adicionarem metaprogramação sem ganho para o case.
 
 **Sources**: [Fastify validation and serialization](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/),
 [`@fastify/swagger`](https://github.com/fastify/fastify-swagger),
-[`@fastify/swagger-ui`](https://github.com/fastify/fastify-swagger-ui).
+[`@fastify/swagger-ui`](https://github.com/fastify/fastify-swagger-ui), Zod e integração
+Fastify/Zod para type provider e transformação OpenAPI.
 
 ## 4. Canonicalização e idempotência concorrente
 
