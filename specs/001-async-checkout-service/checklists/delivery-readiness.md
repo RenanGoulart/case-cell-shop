@@ -13,7 +13,7 @@
 - [ ] CHK003 Os requisitos de concorrencia definem o comportamento para chaves iguais, chaves distintas, payloads iguais, payloads diferentes e disputa pelo ultimo estoque? [Completeness, Spec BR-016..BR-017, Edge Cases]
 - [ ] CHK004 Os requisitos transacionais especificam quais registros devem ser persistidos como uma unica decisao atomica e quais efeitos nao podem ocorrer fora dela? [Completeness, Spec BR-006, BR-008]
 - [ ] CHK005 Os requisitos de outbox definem persistencia, deduplicacao, publicacao, redelivery, retry de negocio e efeitos esperados para mensagens duplicadas? [Completeness, Spec FR-008, BR-008, BR-012, Plan Outbox e RabbitMQ]
-- [ ] CHK006 Os requisitos de cache cobrem hit, miss, expiracao, invalidacao, modo degradado, recuperacao do Redis e indisponibilidade simultanea de Redis e banco local? [Completeness, Spec FR-003..FR-004, FR-016..FR-018, BR-014, BR-020..BR-021, Edge Cases]
+- [ ] CHK006 Os requisitos de cache cobrem hit, miss, expiracao, invalidação, modo degradado, recuperacao do Redis e indisponibilidade simultanea de Redis e banco local? [Completeness, Spec FR-003..FR-004, FR-016..FR-018, BR-014, BR-020..BR-021, Edge Cases]
 - [ ] CHK007 Os requisitos de retries cobrem falha temporaria, timeout, falha definitiva, limite de tentativas, atraso entre tentativas e resposta tardia do ERP? [Completeness, Spec FR-015, BR-010..BR-011, BR-018..BR-019]
 - [ ] CHK008 Os requisitos de observabilidade definem logs, metricas e correlacao para fluxos HTTP, outbox, worker, cache, idempotencia, reservas e ERP? [Completeness, Spec OR-001..OR-008]
 - [ ] CHK009 Os requisitos de execucao local especificam todos os servicos, seeds, migrations, comandos Docker Compose e evidencias esperadas para API, worker, banco, Redis e RabbitMQ? [Completeness, Plan Local Execution, Quickstart]
@@ -27,7 +27,7 @@
 - [ ] CHK014 As transicoes de pedido estao descritas como um grafo fechado, com estados terminais e proibicao explicita de transicoes fora de `pending`, `processing`, `retrying`, `confirmed` e `failed`? [Clarity, Spec FR-011, BR-009]
 - [ ] CHK015 A classificacao de resultados do ERP simulado esta quantificada com 80%/10%/5%/5%, modo forcado e criterio objetivo de timeout em 60 segundos? [Clarity, Spec FR-009, FR-015, BR-018..BR-019]
 - [ ] CHK016 O comportamento de cache degradado deixa claro quando Redis deve ser ignorado, quando pode voltar a ser usado e como impedir resposta com entrada obsoleta? [Clarity, Spec FR-016..FR-018, BR-020..BR-021]
-- [ ] CHK017 Os requisitos de metricas definem nomes ou categorias suficientes para diferenciar sucesso, falha, duracao, hit, miss, fallback, degradacao, retries e resultados do ERP? [Clarity, Spec OR-004..OR-008, Plan Observability]
+- [ ] CHK017 Os requisitos de metricas definem nomes ou categorias suficientes para diferenciar sucesso, falha, duração, hit, miss, fallback, degradacao, retries e resultados do ERP? [Clarity, Spec OR-004..OR-008, Plan Observability]
 
 ## Requirement Consistency
 
@@ -40,7 +40,7 @@
 
 ## Acceptance Criteria Quality
 
-- [ ] CHK024 Os criterios de sucesso permitem medir objetivamente latencia de checkout, ganho de cache, ausencia de overselling, distribuicao probabilistica do ERP e cobertura OpenAPI? [Acceptance Criteria, Spec SC-001..SC-011]
+- [ ] CHK024 Os criterios de sucesso permitem medir objetivamente latência de checkout, ganho de cache, ausencia de overselling, distribuição probabilistica do ERP e cobertura OpenAPI? [Acceptance Criteria, Spec SC-001..SC-011]
 - [ ] CHK025 Os criterios de aceite de concorrencia especificam resultados observaveis para estoque, pedido, reserva, idempotencia e conflito sem depender de ordem de execucao nao deterministica? [Acceptance Criteria, Spec US2, US3, BR-016..BR-017, SC-004..SC-005]
 - [ ] CHK026 Os criterios de aceite de retry especificam como evidenciar numero de tentativa, status intermediario, status terminal, restituicao de reserva e ausencia de efeito duplicado? [Acceptance Criteria, Spec US5, BR-010..BR-012, SC-006]
 - [ ] CHK027 Os criterios de aceite de observabilidade definem quais identificadores e metricas tornam rastreavel uma requisicao desde HTTP ate processamento assincrono? [Acceptance Criteria, Spec US6, OR-001..OR-008, SC-007..SC-008]
@@ -71,10 +71,10 @@
 
 ## Documentation Readiness
 
-- [ ] CHK043 O README planejado possui requisitos explicitos para explicar arquitetura, decisoes, trade-offs, limitacoes, comandos locais, Docker Compose, seed de 50 produtos e cenarios de validacao? [Completeness, Constitution VII, Plan Local Execution, Quickstart]
+- [ ] CHK043 O README planejado possui requisitos explicitos para explicar arquitetura, decisoes, trade-offs, limitacoes, comandos locais, Docker Compose, seed de 50 produtos e cenarios de validação? [Completeness, Constitution VII, Plan Local Execution, Quickstart]
 - [ ] CHK044 O README planejado referencia `PROMPTS.md` e explica que prompts relevantes devem ser registrados e revisados conforme uso responsavel de IA? [Completeness, Constitution VIII]
-- [ ] CHK045 A documentacao planejada inclui instrucoes para acessar OpenAPI, metricas, logs correlacionados e status do pedido durante a demonstracao local? [Completeness, Spec CR-007, OR-001..OR-008, Quickstart]
-- [ ] CHK046 A documentacao planejada diferencia trade-offs aceitos do case de lacunas nao implementadas, sem apresentar simplificacoes como comportamento de producao? [Clarity, Spec Scope Boundaries, Constitution I, VII]
+- [ ] CHK045 A documentacao planejada inclui instrucoes para acessar OpenAPI, metricas, logs correlacionados e status do pedido durante a demonstração local? [Completeness, Spec CR-007, OR-001..OR-008, Quickstart]
+- [ ] CHK046 A documentacao planejada diferencia trade-offs aceitos do case de lacunas nao implementadas, sem apresentar simplificacoes como comportamento de produção? [Clarity, Spec Scope Boundaries, Constitution I, VII]
 
 ## Notes
 

@@ -46,6 +46,7 @@ RESERVATION_TTL_SECONDS=300
 ERP_ATTEMPT_TIMEOUT_SECONDS=60
 ERP_MAX_ATTEMPTS=3
 ERP_RETRY_DELAY_SECONDS=5
+CATALOG_DB_ARTIFICIAL_DELAY_MS=500
 ERP_MODE=probabilistic
 ERP_FORCED_RESULT=
 ```
@@ -113,6 +114,9 @@ Esperado:
 - `200` com 50 entradas em base limpa, contendo `id`, `name`, `price`, `currency` e `availableQuantity`;
 - headers `x-request-id` e `x-correlation-id` em ambas as respostas;
 - métricas distinguindo miss e hit;
+- o miss que carrega do PostgreSQL usa atraso artificial local de 500ms para imitar latência de
+  produção; o hit Redis nao aplica esse atraso e deve ficar pelo menos 50% mais rapido em validação
+  controlada;
 - o teste de contrato `products-empty` comprova `204` sem corpo para catálogo vazio, sem exigir
   alteração manual do seed.
 
@@ -214,7 +218,8 @@ Eles comprovam:
 - timeout ocorre no deadline de 60 segundos e ignora resposta tardia;
 - `unavailable` falha imediatamente;
 - a terceira falha retryable termina em `failed` e restitui uma vez;
-- a distribuição seeded de 10.000 tentativas respeita 80%/10%/5%/5% com tolerância de 1 ponto.
+- a distribuição seeded de 1.000 tentativas respeita 80%/10%/5%/5% com tolerância de 4 pontos
+  percentuais, reduzindo o tempo da suite local.
 
 ## Run the Approval Gate and Test Suites
 
@@ -313,3 +318,5 @@ docker compose down -v
 - Não há autenticação, pagamento, front-end, cloud ou trace distribuído real.
 - O Compose usa um broker e um banco sem alta disponibilidade.
 - Redis acelera leitura; decisões de estoque sempre usam PostgreSQL.
+- O atraso artificial de 500ms no carregamento do catalogo pelo banco existe apenas para
+  demonstração/teste local de cache e imita latência de produção; nao e regra de negocio.

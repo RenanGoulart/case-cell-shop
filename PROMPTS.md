@@ -89,3 +89,10 @@
 - **Result**: Atualizados `plan.md`, `research.md`, `test-scenarios.md` e `quickstart.md` com flat
   config, escopo/ignores, scripts, cenários de validação e gate reproduzível pelo Docker Compose.
   Modelo de dados e contratos públicos foram preservados por não sofrerem impacto.
+
+## 2026-07-27 - Correções pos-analise de ambiguidades
+
+- **Command**: ajuste solicitado apos `$speckit-analyze`
+- **Purpose**: Corrigir branch divergente, critério local de performance do cache e evidencia estatística do ERP.
+- **Prompt summary**: Atualizar a branch da spec para `001-async-checkout-service`; documentar atraso artificial configurável de 500ms no caminho de banco do catalogo para imitar latência de produção local; reduzir teste probabilístico do ERP para 1.000 tentativas com tolerância de 4 pontos percentuais.
+- **Result**: Atualizados `spec.md`, `plan.md`, `research.md`, `test-scenarios.md`, `quickstart.md` e `tasks.md` para refletir as decisões e manter a rastreabilidade da entrega.

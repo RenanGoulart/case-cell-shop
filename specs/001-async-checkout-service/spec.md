@@ -1,6 +1,6 @@
 # Feature Specification: Catálogo e Checkout Assíncrono
 
-**Feature Branch**: `main`
+**Feature Branch**: `001-async-checkout-service`
 
 **Created**: 2026-07-27
 
@@ -29,6 +29,14 @@ estoque, consulta de pedido, ERP simulado, observabilidade e contrato de API pre
 - Q: Como o serviço deve operar quando o Redis estiver indisponível? → A: Ignorar temporariamente
   o Redis, consultar o banco local e manter catálogo e checkout disponíveis; antes de reutilizar
   o cache após a recuperação, invalidar ou recarregar sua entrada para não servir dados obsoletos.
+- Q: Como validar localmente o ganho de tempo do cache se o banco local responde quase
+  imediatamente? -> A: O caminho de carregamento do catalogo a partir do banco local deve incluir
+  atraso artificial configurável de 500ms apenas para demonstração/teste local de cache; o caminho
+  atendido por Redis nao deve aplicar esse atraso. Essa simplificação imita latência de produção e
+  deve ser documentada nos artefatos relevantes.
+- Q: Qual evidencia estatística usar para o modo probabilístico do ERP sem deixar a suite local
+  lenta? -> A: Reduzir a validação para 1.000 tentativas com RNG seeded e tolerância de 4 pontos
+  percentuais por resultado, documentando que e uma amostra local reduzida para velocidade.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -414,9 +422,10 @@ e métricas por requisição, processamento e pedido.
 
 - **SC-001**: 100% das listagens com produtos retornam todos os campos definidos e 100% das
   listagens sem produtos retornam `204 No Content` sem corpo de resposta.
-- **SC-002**: Em validação controlada, uma listagem atendida por cache válido tem duração pelo
-  menos 50% menor que a mesma listagem carregada da fonte local, e nenhuma entrada expirada é
-  servida.
+- **SC-002**: Em validação local controlada, o carregamento do catalogo a partir do banco local
+  aplica um atraso artificial configurável de 500ms para imitar latência de produção; uma listagem
+  atendida por cache Redis valido nao aplica esse atraso, tem duração pelo menos 50% menor que a
+  carga local simulada, e nenhuma entrada expirada e servida.
 - **SC-011**: Em 100% dos cenários de indisponibilidade isolada do Redis com banco local
   disponível, a listagem retorna o resultado atual do banco e checkouts válidos permanecem
   disponíveis; após a recuperação, nenhuma entrada anterior à mudança de disponibilidade é
@@ -432,8 +441,9 @@ e métricas por requisição, processamento e pedido.
 - **SC-006**: Para cada resultado forçado do ERP, 100% dos pedidos seguem a transição definida e
   alcançam o estado terminal esperado dentro de três tentativas, sem efeitos finais duplicados;
   todo processamento sem conclusão em 60 segundos é classificado como `timeout`.
-- **SC-010**: Em uma amostra controlada de pelo menos 10.000 tentativas probabilísticas, cada taxa
-  observada fica a até 1 ponto percentual da distribuição configurada de 80%/10%/5%/5%.
+- **SC-010**: Em uma amostra local reduzida de pelo menos 1.000 tentativas probabilísticas com RNG
+  seeded, cada taxa observada fica a ate 4 pontos percentuais da distribuição configurada de
+  80%/10%/5%/5%.
 - **SC-007**: 100% dos pedidos observados podem ser rastreados do checkout às tentativas de
   processamento usando os identificadores documentados.
 - **SC-008**: As métricas distinguem corretamente cache hit/miss, falhas do Redis, fallback,
@@ -446,6 +456,9 @@ e métricas por requisição, processamento e pedido.
 
 - O case usa um único estoque lógico e uma única moeda configurada.
 - O TTL padrão do catálogo é 60 segundos.
+- A validação local de performance do cache usa atraso artificial configurável de 500ms apenas no
+  caminho de carregamento do banco local; esse atraso nao existe no caminho de hit Redis e nao
+  representa uma regra de negocio.
 - O Redis é um cache não autoritativo; o banco local permanece como fonte do catálogo e estoque.
 - A janela padrão de idempotência é 24 horas.
 - A reserva de estoque expira após 5 minutos se não houver conclusão válida.
@@ -453,6 +466,8 @@ e métricas por requisição, processamento e pedido.
 - O simulador usa, por tentativa, 80% de chance de confirmação, 10% de indisponibilidade
   temporária, 5% de indisponibilidade total e 5% de timeout; qualquer resultado pode ser forçado
   em testes determinísticos.
+- O teste estatístico do ERP usa 1.000 tentativas com RNG seeded e tolerância de 4 pontos
+  percentuais para preservar velocidade no ambiente local.
 - O banco local é a fonte de catálogo e estoque; não há sincronização de entrada ou saída com o
   ERP.
 - Autenticação, pagamento, front-end, ERP real e deploy em nuvem permanecem fora do escopo.

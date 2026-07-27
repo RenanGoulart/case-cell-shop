@@ -40,7 +40,7 @@ evidência de concorrência, atomicidade, TTL, confirm ou redelivery.
 | CAT-010 | Integration | Redis recupera com entrada antiga | Nenhum hit antes de remover/substituir com geração atual. |
 | CAT-011 | Integration | Redis e PostgreSQL indisponíveis | `503 CATALOG_UNAVAILABLE` no envelope comum. |
 | CAT-012 | Unit/Integration | Misses simultâneos | Single-flight faz uma carga completa por processo; respostas iguais. |
-| CAT-013 | Performance | Hit vs carga completa | Hit com validação de geração é pelo menos 50% mais rápido em ambiente controlado. |
+| CAT-013 | Performance | Hit vs carga completa | Carga do banco aplica atraso artificial configurável de 500ms; hit Redis nao aplica esse atraso e fica pelo menos 50% mais rapido |
 
 ## Checkout and Stock
 
@@ -95,7 +95,7 @@ evidência de concorrência, atomicidade, TTL, confirm ou redelivery.
 | ERP-007 | Integration concorrente | Duas entregas mesma tentativa | Uma cria attempt/chama ERP; outra é no-op/ack. |
 | ERP-008 | Integration | Mensagem para estado terminal | No-op/ack, sem chamada ERP ou liberação adicional. |
 | ERP-009 | Integration/Fake clock | Retry delay | Próxima mensagem não publica antes de 5s e publica depois. |
-| ERP-010 | Unit estatístico | RNG seeded, 10.000 tentativas | Cada taxa a até 1 ponto de 80/10/5/5. |
+| ERP-010 | Unit estatístico | RNG seeded, 1.000 tentativas | Cada taxa a ate 4 pontos percentuais de 80%/10%/5%/5% |
 | ERP-011 | Integration | Worker cai durante `PROCESSING` | Sweep aplica timeout ao deadline e segue regra de retry. |
 
 ## Reservations

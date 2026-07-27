@@ -224,6 +224,11 @@ faz `SET EX`. Se o `SET` falhar, ainda retorna os dados. Após commit de mutaç�
 como otimização. Mesmo que falhe em outro processo, a geração impede servir a entrada obsoleta
 quando o banco está acessível.
 
+Para evidenciar o ganho de cache em ambiente local, o adapter de leitura do banco aplica atraso
+artificial configurável de 500ms somente no caminho de carga do PostgreSQL. O hit Redis nao aplica
+esse atraso. Essa escolha imita latência de produção para teste/demonstração porque o banco local
+responde rapido demais para tornar o criterio de 50% estavel.
+
 Falha Redis abre circuit breaker local com timeout curto. Enquanto aberto/half-open, nenhuma
 entrada é servida. Na recuperação, obter a geração atual e remover ou substituir a chave antes de
 fechar. Se PostgreSQL estiver indisponível, uma entrada Redis dentro do TTL pode ser usada conforme
@@ -242,8 +247,9 @@ processo; lock distribuído não é necessário.
 - Write-through/write-behind: transforma Redis em caminho crítico.
 - Lock distribuído: desnecessário para uma única chave e catálogo pequeno.
 
-**Tests/Risks**: hit/miss/TTL/lista vazia, payload corrompido, falha GET/SET/DEL, fallback, geração
-divergente, recuperação antes do primeiro hit, misses concorrentes e Redis+PostgreSQL indisponíveis.
+**Tests/Risks**: hit/miss/TTL/lista vazia, payload corrompido, falha GET/SET/DEL, fallback, geracao
+divergente, recuperacao antes do primeiro hit, misses concorrentes, Redis+PostgreSQL indisponíveis
+e comparacao local de duração com 500ms artificiais apenas no caminho de banco.
 
 **Sources**: [Redis cache-aside](https://redis.io/docs/latest/develop/use-cases/cache-aside/),
 [Redis Node.js cache-aside](https://redis.io/docs/latest/develop/use-cases/cache-aside/nodejs/).
@@ -258,6 +264,11 @@ sleeper também são ports; timeout não depende de aguardar 60 segundos em test
 **Rationale**: configuração e injeção tornam todos os caminhos determinísticos e preservam a
 regra pura de classificação. O simulador não sincroniza produtos ou estoque e não representa um
 ERP real.
+
+O teste estatístico local usa 1.000 tentativas com RNG seeded e tolerância de 4 pontos percentuais
+por resultado. A amostra menor reduz tempo de suite local sem remover a prova de que a distribuição
+80/10/5/5 esta grosseiramente correta; testes deterministicos forcados continuam cobrindo cada
+resultado individual.
 
 **Alternatives considered**:
 
