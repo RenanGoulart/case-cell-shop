@@ -96,3 +96,16 @@
 - **Purpose**: Corrigir branch divergente, critério local de performance do cache e evidencia estatística do ERP.
 - **Prompt summary**: Atualizar a branch da spec para `001-async-checkout-service`; documentar atraso artificial configurável de 500ms no caminho de banco do catalogo para imitar latência de produção local; reduzir teste probabilístico do ERP para 1.000 tentativas com tolerância de 4 pontos percentuais.
 - **Result**: Atualizados `spec.md`, `plan.md`, `research.md`, `test-scenarios.md`, `quickstart.md` e `tasks.md` para refletir as decisões e manter a rastreabilidade da entrega.
+## 2026-07-27 — Geração das tarefas da feature
+
+- **Command**: `$speckit-tasks`
+- **Purpose**: Transformar especificação, plano, contratos e cenários em uma fila executável de implementação.
+- **Prompt summary**: Gerar tarefas ordenadas por fases para setup, testes, catálogo, checkout, status, observabilidade, Docker Compose, documentação e validação final, respeitando TDD, OpenAPI, idempotência, concorrência, outbox, cache, retries, ESLint obrigatório e simplificações documentadas.
+- **Result**: Criado e evoluído `specs/001-async-checkout-service/tasks.md` com tarefas T001 a T116, incluindo fase final de polish e validações cruzadas.
+
+## 2026-07-27 — Implementação faseada
+
+- **Command**: `$speckit-implement`
+- **Purpose**: Implementar a feature por fases, permitindo validação manual do usuário entre etapas.
+- **Prompt summary**: Executar o próximo bloco pendente de `tasks.md`, mantendo contratos, testes, documentação, Docker Compose, Zod, ESLint e UTF-8 consistentes.
+- **Result**: Implementação incremental da API, worker, persistência, cache, idempotência, outbox, métricas, contratos de drift, smoke script e documentação de entrega.

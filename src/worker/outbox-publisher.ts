@@ -1,3 +1,4 @@
+import type { WorkerOperationalMetrics } from "../observability/metrics.js";
 import type { OrderProcessingMessage } from "./schemas/order-processing-message.js";
 
 export interface OutboxClaimTokenCheck {
@@ -32,6 +33,7 @@ export interface OutboxPublisherOptions {
   readonly uuidGenerator: { randomUuid(): string };
   readonly batchSize: number;
   readonly leaseMs: number;
+  readonly metrics?: WorkerOperationalMetrics;
 }
 
 export function buildOutboxClaimSql(): string {
@@ -67,7 +69,13 @@ export class OutboxPublisher {
     let published = 0;
 
     for (const event of events) {
-      await this.options.publisher.publish(event.payload);
+      try {
+        await this.options.publisher.publish(event.payload);
+      } catch (error) {
+        this.options.metrics?.recordOutboxPublishFailed();
+        throw error;
+      }
+
       const marked = await this.options.repository.markOutboxPublished(
         event.id,
         event.lockToken,
@@ -76,6 +84,7 @@ export class OutboxPublisher {
 
       if (marked) {
         published += 1;
+        this.options.metrics?.recordOutboxPublished();
       }
     }
 

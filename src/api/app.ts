@@ -39,6 +39,7 @@ import {
   type OrderStatusRouteDependencies,
 } from "./routes/order-status.js";
 import { systemSleeper } from "../shared/ports/runtime.js";
+import { requestContextHook } from "./plugins/request-context.js";
 
 export interface AppDependencies {
   readonly products?: ProductsRouteDependencies;
@@ -58,17 +59,7 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
-  app.addHook("onRequest", (request, reply, done) => {
-    const correlationHeader = request.headers["x-correlation-id"];
-    const correlationId =
-      typeof correlationHeader === "string" && correlationHeader.length > 0
-        ? correlationHeader
-        : crypto.randomUUID();
-
-    reply.header("x-request-id", request.id);
-    reply.header("x-correlation-id", correlationId);
-    done();
-  });
+  app.addHook("onRequest", requestContextHook);
 
   app.setErrorHandler((error, request, reply) => {
     const maybeRequestError = error as {

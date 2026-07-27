@@ -19,6 +19,7 @@ import { OrderConsumer } from "./order-consumer.js";
 import { OutboxPublisher } from "./outbox-publisher.js";
 import { RecoverySweeper } from "./recovery-sweeper.js";
 import { ReservationExpirer } from "./reservation-expirer.js";
+import { startWorkerMetricsServer } from "./metrics-server.js";
 
 const config = loadConfig();
 const logger = createLogger(config.logLevel).child({ component: "worker" });
@@ -43,6 +44,7 @@ async function runWorker(): Promise<void> {
     uuidGenerator: cryptoUuidGenerator,
     batchSize: 10,
     leaseMs: 30_000,
+    metrics: metrics.worker,
   });
   const consumer = new OrderConsumer({
     repository,
@@ -54,13 +56,25 @@ async function runWorker(): Promise<void> {
     }),
     maxAttempts: config.erpMaxAttempts,
     retryDelayMs: config.erpRetryDelaySeconds * 1_000,
+    metrics: metrics.worker,
+    logger,
   });
-  const expirer = new ReservationExpirer({ repository, clock: systemClock });
+  const expirer = new ReservationExpirer({
+    repository,
+    clock: systemClock,
+    metrics: metrics.worker,
+  });
   const recoverySweeper = new RecoverySweeper({
     repository,
     clock: systemClock,
     maxAttempts: config.erpMaxAttempts,
     retryDelayMs: config.erpRetryDelaySeconds * 1_000,
+  });
+
+  const metricsServer = await startWorkerMetricsServer({
+    host: config.workerMetricsHost,
+    port: config.workerMetricsPort,
+    metrics,
   });
 
   await rabbitMq.channel.consume(
@@ -113,6 +127,7 @@ async function runWorker(): Promise<void> {
     for (const timer of timers) {
       clearInterval(timer);
     }
+    await metricsServer.close();
     await rabbitMq.close();
     await prisma.$disconnect();
   };

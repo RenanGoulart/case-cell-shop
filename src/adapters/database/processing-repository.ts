@@ -153,7 +153,11 @@ export class PrismaProcessingRepository implements ProcessingRepository {
         });
       }
 
-      return { applied: true };
+      return {
+        applied: true,
+        scheduledRetry: decision.retry,
+        restoredItems: decision.reservationEffect === "release" ? 1 : 0,
+      };
     });
   }
 

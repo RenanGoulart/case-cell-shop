@@ -28,6 +28,8 @@ export interface FinishProcessingAttemptInput {
 
 export interface FinishProcessingAttemptResult {
   readonly applied: boolean;
+  readonly scheduledRetry?: boolean;
+  readonly restoredItems?: number;
   readonly reason?: "ignored" | "late" | "stale_token";
 }
 

@@ -82,3 +82,13 @@
 - Add comments or findings inline
 - Link to relevant resources or documentation
 - Items are numbered sequentially for easy reference
+## Evidence review - 2026-07-27
+
+- CHK001-CHK018: Evidência em `specs/001-async-checkout-service/contracts/openapi.yaml`, schemas Zod da API e teste `tests/contract/openapi-drift.test.ts`.
+- CHK003, CHK012, CHK025, CHK035: Evidência em testes de idempotência/concorrência e hash canônico em `src/domain` e `tests/`.
+- CHK004-CHK005, CHK020-CHK021, CHK026: Evidência em transações Prisma, outbox, worker idempotente e testes de processamento assíncrono.
+- CHK006, CHK016, CHK022, CHK036-CHK037: Evidência em adapters Redis/cache-aside, fallback para PostgreSQL, métricas de cache e documentação do atraso artificial local.
+- CHK007, CHK015, CHK032: Evidência no ERP simulado configurável, retries limitados, timeout de 60s e cenários de teste estatístico reduzido.
+- CHK008, CHK017, CHK027, CHK045: Evidência em middleware de `requestId`/`correlationId`, logs Pino, métricas Prometheus da API/worker e contratos `/metrics`.
+- CHK009, CHK028, CHK039, CHK043: Evidência em `docker-compose.yml`, `.env`, seed Faker de 50 produtos, `scripts/quickstart-smoke.ps1` e `specs/001-async-checkout-service/quickstart.md`.
+- CHK010, CHK040-CHK046: Evidência em `README.md`, `PROMPTS.md`, constituição, plano e documentação explícita de trade-offs, limitações e ausência de sincronização ERP-banco local.

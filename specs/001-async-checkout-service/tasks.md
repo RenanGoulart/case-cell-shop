@@ -232,18 +232,18 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 > Write these tests FIRST and confirm each fails for the expected reason.
 
-- [ ] T099 [P] [US6] Write failing contract tests for API /metrics and worker /metrics Prometheus text responses and headers in tests/contract/metrics.test.ts
-- [ ] T100 [P] [US6] Write failing integration tests for requestId and correlationId propagation from HTTP to outbox and RabbitMQ message in tests/integration/correlation.test.ts
-- [ ] T101 [P] [US6] Write failing integration tests for structured log fields in HTTP and worker flows without checkout payload logging in tests/integration/structured-logs.test.ts
-- [ ] T102 [P] [US6] Write failing integration tests for metric counters and histograms covering cache, idempotency, outbox, messages, ERP outcomes, retries and reservation restitution in tests/integration/metrics.test.ts
+- [X] T099 [P] [US6] Write failing contract tests for API /metrics and worker /metrics Prometheus text responses and headers in tests/contract/metrics.test.ts
+- [X] T100 [P] [US6] Write failing integration tests for requestId and correlationId propagation from HTTP to outbox and RabbitMQ message in tests/integration/correlation.test.ts
+- [X] T101 [P] [US6] Write failing integration tests for structured log fields in HTTP and worker flows without checkout payload logging in tests/integration/structured-logs.test.ts
+- [X] T102 [P] [US6] Write failing integration tests for metric counters and histograms covering cache, idempotency, outbox, messages, ERP outcomes, retries and reservation restitution in tests/integration/metrics.test.ts
 
 ### Implementation for User Story 6
 
-- [ ] T103 [US6] Implement requestId and correlationId Fastify plugin with response headers and request-scoped logger in src/api/plugins/request-context.ts
-- [ ] T104 [US6] Implement correlation propagation into checkout transaction, outbox payload and RabbitMQ properties in src/modules/orders/application/accept-checkout.ts
-- [ ] T105 [US6] Implement worker child logger context with correlationId, orderId, attemptNumber and outbox event id in src/worker/order-consumer.ts
-- [ ] T106 [US6] Implement API and worker metrics endpoints with prom-client registries in src/api/routes/metrics.ts and src/worker/metrics-server.ts
-- [ ] T107 [US6] Implement no-op TracePort and document trace stub integration point in src/observability/trace.ts
+- [X] T103 [US6] Implement requestId and correlationId Fastify plugin with response headers and request-scoped logger in src/api/plugins/request-context.ts
+- [X] T104 [US6] Implement correlation propagation into checkout transaction, outbox payload and RabbitMQ properties in src/modules/orders/application/accept-checkout.ts
+- [X] T105 [US6] Implement worker child logger context with correlationId, orderId, attemptNumber and outbox event id in src/worker/order-consumer.ts
+- [X] T106 [US6] Implement API and worker metrics endpoints with prom-client registries in src/api/routes/metrics.ts and src/worker/metrics-server.ts
+- [X] T107 [US6] Implement no-op TracePort and document trace stub integration point in src/observability/trace.ts
 
 **Checkpoint**: User Story 6 is independently functional and testable.
 
@@ -253,15 +253,15 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 **Purpose**: Complete delivery documentation, validation evidence and consistency checks across all stories.
 
-- [ ] T108 [P] Update README with architecture, decisions, trade-offs, limitations, no ERP sync, Docker Compose instructions, validation scenarios and link to PROMPTS.md in README.md
-- [ ] T109 [P] Update PROMPTS.md with the tasks-generation prompt, purpose and resulting artifact in PROMPTS.md
-- [ ] T110 [P] Add OpenAPI drift validation comparing generated documentation to specs/001-async-checkout-service/contracts/openapi.yaml in tests/contract/openapi-drift.test.ts
-- [ ] T111 [P] Add worker contract drift validation for specs/001-async-checkout-service/contracts/worker-openapi.yaml and order-processing-message.schema.json in tests/contract/worker-contract-drift.test.ts
-- [ ] T112 [P] Add quickstart smoke script covering catalog, checkout, idempotency replay, status, metrics and Docker Compose checks in scripts/quickstart-smoke.ps1
-- [ ] T113 Run full local quality gate and fix only valid failures until npm run verify passes with zero warnings in package.json
-- [ ] T114 Run Docker Compose validation and fix only valid failures until docker compose --profile test run --rm test npm run verify passes in docker-compose.yml
-- [ ] T115 Review delivery-readiness checklist and mark satisfied items with evidence references in specs/001-async-checkout-service/checklists/delivery-readiness.md
-- [ ] T116 Final consistency pass across spec.md, plan.md, tasks.md, README.md and PROMPTS.md without changing behavior to fit incorrect implementation in specs/001-async-checkout-service/tasks.md
+- [X] T108 [P] Update README with architecture, decisions, trade-offs, limitations, no ERP sync, Docker Compose instructions, validation scenarios and link to PROMPTS.md in README.md
+- [X] T109 [P] Update PROMPTS.md with the tasks-generation prompt, purpose and resulting artifact in PROMPTS.md
+- [X] T110 [P] Add OpenAPI drift validation comparing generated documentation to specs/001-async-checkout-service/contracts/openapi.yaml in tests/contract/openapi-drift.test.ts
+- [X] T111 [P] Add worker contract drift validation for specs/001-async-checkout-service/contracts/worker-openapi.yaml and order-processing-message.schema.json in tests/contract/worker-contract-drift.test.ts
+- [X] T112 [P] Add quickstart smoke script covering catalog, checkout, idempotency replay, status, metrics and Docker Compose checks in scripts/quickstart-smoke.ps1
+- [X] T113 Run full local quality gate and fix only valid failures until npm run verify passes with zero warnings in package.json
+- [X] T114 Run Docker Compose validation and fix only valid failures until docker compose --profile test run --rm test npm run verify passes in docker-compose.yml
+- [X] T115 Review delivery-readiness checklist and mark satisfied items with evidence references in specs/001-async-checkout-service/checklists/delivery-readiness.md
+- [X] T116 Final consistency pass across spec.md, plan.md, tasks.md, README.md and PROMPTS.md without changing behavior to fit incorrect implementation in specs/001-async-checkout-service/tasks.md
 
 ---
 

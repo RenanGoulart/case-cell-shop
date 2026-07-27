@@ -1,4 +1,4 @@
-﻿import { z } from "zod";
+import { z } from "zod";
 
 export const orderProcessingMessageSchema = z
   .object({
@@ -17,6 +17,7 @@ export type OrderProcessingMessage = z.infer<typeof orderProcessingMessageSchema
 export const orderProcessingMessageJsonSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://casecellshop.local/schemas/order-processing-message.schema.json",
+  title: "OrderProcessingMessage",
   type: "object",
   additionalProperties: false,
   required: [
