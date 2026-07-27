@@ -349,3 +349,42 @@ estoque/dados existentes e incremento condicional da geração do catálogo.
 [Faker commerce API](https://fakerjs.dev/api/commerce),
 [Prisma seeding](https://www.prisma.io/docs/orm/prisma-migrate/workflows/seeding),
 [Prisma `createMany`](https://www.prisma.io/docs/orm/prisma-client/queries/crud#create-many-records).
+
+## 14. ESLint, Prettier e gate obrigatório de aprovação
+
+**Decision**: usar ESLint 10.8 em flat config ESM com `@eslint/js`, `typescript-eslint` 8 e
+`globals.nodeBuiltin`. Todo TypeScript mantido pela equipe usa `strictTypeChecked` e
+`stylisticTypeChecked` com `parserOptions.projectService = true`; arquivos MJS/JS fora do projeto
+TypeScript recebem lint recomendado sem typecheck. Configurações TypeScript na raiz usam o default
+project limitado a `*.config.ts`, e diretivas/configurações inline não utilizadas são erros. As versões compatíveis são dependências locais
+de desenvolvimento e o `package-lock.json` fixa a resolução efetivamente aprovada.
+
+Prettier 3 roda separadamente, com `eslint-config-prettier/flat` ao final da configuração para evitar
+conflitos. O projeto não usa `eslint-plugin-prettier`. `npm run lint` aplica
+`eslint . --max-warnings=0`, e `npm run verify` encadeia `lint`, `format:check`, `typecheck` e todos
+os testes. Código gerado e outputs (`src/generated/prisma`, `dist`, `coverage`, `node_modules`) são
+ignorados; `src`, `tests`, `prisma`, scripts e configurações permanecem no escopo.
+
+**Rationale**: regras tipadas detectam usos inseguros que análise sintática não encontra. O
+Project Service mantém o mesmo entendimento de tipos usado pelo editor e pelo TypeScript. Separar
+formatação e lint reduz custo e evita mensagens duplicadas, enquanto um comando único produz uma
+evidência objetiva e reproduzível para aprovação. `--max-warnings=0` impede que avisos se tornem um
+baseline permanente.
+
+**Alternatives considered**:
+
+- `.eslintrc`: rejeitado porque flat config é o formato atual e simplifica composição e ignores.
+- `recommendedTypeChecked`: rejeitado pela escolha explícita de regras estritas e estilísticas.
+- ESLint sem type information: rejeitado por reduzir a detecção de erros TypeScript.
+- `eslint-plugin-prettier`: rejeitado; executar Prettier separadamente é mais simples e rápido.
+- warnings permitidos ou baseline inicial: rejeitados pelo gate de aprovação com zero warnings.
+- lint apenas de `src`: rejeitado porque seed, testes e configurações também são código mantido.
+- hooks Git obrigatórios: não necessários; o comando versionado e o gate de revisão são portáveis.
+
+**Sources**: [ESLint configuration](https://eslint.org/docs/latest/use/configure/),
+[ESLint CLI `--max-warnings`](https://eslint.org/docs/latest/use/command-line-interface#--max-warnings),
+[typescript-eslint typed linting](https://typescript-eslint.io/getting-started/typed-linting/),
+[typescript-eslint shared configs](https://typescript-eslint.io/users/configs/),
+[typescript-eslint dependency versions](https://typescript-eslint.io/users/dependency-versions/),
+[Prettier integration with linters](https://prettier.io/docs/next/integrating-with-linters.html),
+[Prettier installation and CI check](https://prettier.io/docs/install.html).

@@ -216,7 +216,35 @@ Eles comprovam:
 - a terceira falha retryable termina em `failed` e restitui uma vez;
 - a distribuição seeded de 10.000 tentativas respeita 80%/10%/5%/5% com tolerância de 1 ponto.
 
-## Run Test Suites
+## Run the Approval Gate and Test Suites
+
+O comando obrigatório antes de aprovar qualquer alteração de código é:
+
+```bash
+npm run verify
+```
+
+Ele executa, em sequência, ESLint com zero warnings, verificação de formatação pelo Prettier,
+`tsc --noEmit` e todas as suites Vitest. A evidência reproduzível pelo ambiente do case é:
+
+```bash
+docker compose --profile test run --rm test npm run verify
+```
+
+Ambos devem encerrar com código `0`. Para diagnóstico ou correção local, os estágios também ficam
+disponíveis separadamente:
+
+```bash
+npm run lint
+npm run lint:fix
+npm run format:check
+npm run format
+npm run typecheck
+```
+
+`lint:fix` e `format` modificam arquivos e não substituem a execução posterior de `npm run verify`.
+
+### Suites isoladas
 
 Toda a suite dentro do Compose:
 

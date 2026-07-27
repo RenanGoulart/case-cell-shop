@@ -123,6 +123,18 @@ evidência de concorrência, atomicidade, TTL, confirm ou redelivery.
 | OBS-005 | Unit | Cardinalidade | Nenhuma métrica usa request/correlation/order ID como label. |
 | OBS-006 | Contract | `/metrics` | Content type e formato Prometheus válidos em `3000` e `9091`. |
 
+## Static Quality and Approval Gate
+
+| ID | Level | Scenario | Expected evidence |
+|----|-------|----------|-------------------|
+| QLT-001 | Tooling | Lint de todo código mantido | `npm run lint` cobre `src`, `tests`, `prisma`, scripts e configs e termina com zero erros e zero warnings. |
+| QLT-002 | Tooling | Código gerado e outputs | `src/generated/prisma`, `node_modules`, `dist` e `coverage` são ignorados; arquivos mantidos pela equipe não são. |
+| QLT-003 | Tooling | Regra TypeScript dependente de tipos | Uma fixture inválida é detectada por `strictTypeChecked`, comprovando uso do Project Service; a fixture válida passa. |
+| QLT-004 | Tooling | Conflito de formatação | `npm run format:check` falha sem alterar arquivos; `npm run format` corrige a fixture. |
+| QLT-005 | Acceptance | Gate completo | `npm run verify` executa lint, format check, typecheck e todas as suites, propagando qualquer código de falha. |
+| QLT-006 | Acceptance | Warning do ESLint | Um único warning faz o gate falhar por `--max-warnings=0`; não existe baseline permitido. |
+| QLT-007 | Compose | Gate reproduzível | `docker compose --profile test run --rm test npm run verify` termina com código `0` em ambiente limpo. |
+
 ## Compose Acceptance
 
 | ID | Scenario | Expected evidence |
@@ -131,13 +143,14 @@ evidência de concorrência, atomicidade, TTL, confirm ou redelivery.
 | CMP-002 | Reinício de API | Pedido/outbox persistidos; worker continua independente. |
 | CMP-003 | Reinício de worker | Mensagens não confirmadas redeliveram; leases abandonados recuperam. |
 | CMP-004 | Reinício de RabbitMQ | Topologia durável e mensagens persistentes permanecem. |
-| CMP-005 | Suite no profile test | Unit, contract, integration e e2e passam em ambiente limpo. |
+| CMP-005 | Gate no profile test | ESLint, Prettier, typecheck, unit, contract, integration e e2e passam em ambiente limpo. |
 
 ## Completion Evidence
 
 Uma implementação só pode encerrar as tarefas quando:
 
 - todos os cenários aplicáveis acima passam;
+- `npm run verify` termina com código `0`, sem warnings do ESLint;
 - OpenAPI gerado e contratos versionados não divergem;
 - solução e suites executam pelo Compose;
 - README registra arquitetura, comandos e ausência de sincronização ERP–banco;

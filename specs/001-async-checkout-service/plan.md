@@ -18,13 +18,16 @@ testável. As regras de domínio não dependem de Fastify, Prisma, Redis, Rabbit
 
 **Primary Dependencies**: Fastify 5, Prisma ORM 7 com `@prisma/adapter-pg`, `pg`, cliente Redis
 oficial, `amqplib`, Pino 10, `@fastify/swagger` 9, `@fastify/swagger-ui` 5, `prom-client` 15 e
-`@faker-js/faker` 10.5 para o seed local
+`@faker-js/faker` 10.5 para o seed local. Ferramentas de desenvolvimento: ESLint 10.8,
+`@eslint/js` 10.8, `typescript-eslint` 8.65, `globals` 17, Prettier 3.9 e
+`eslint-config-prettier` 10; versões exatas permanecem fixadas pelo lockfile
 
 **Storage**: PostgreSQL 18 como fonte autoritativa; Redis 8 como cache não autoritativo com TTL;
 RabbitMQ 4.2 como transporte assíncrono
 
 **Testing**: Vitest 4; unitários sem infraestrutura, contratos via `fastify.inject()`, integração
-contra PostgreSQL/Redis/RabbitMQ reais do Compose e cenários end-to-end controlados
+contra PostgreSQL/Redis/RabbitMQ reais do Compose e cenários end-to-end controlados. Toda alteração
+de código exige `npm run verify` aprovado, reunindo lint, formatação, typecheck e todos os testes
 
 **Target Platform**: Containers Linux AMD64/ARM64 orquestrados por Docker Compose
 
@@ -48,7 +51,8 @@ timeout de cada tentativa do ERP em 60 segundos
 
 **Constraints**: TTL do catálogo 60 segundos; idempotência 24 horas; reserva 5 minutos; no máximo
 3 tentativas do ERP; atraso fixo configurável de 5 segundos entre tentativas; transações sem
-chamadas de rede; estoque nunca negativo; resposta tardia do ERP ignorada
+chamadas de rede; estoque nunca negativo; resposta tardia do ERP ignorada; ESLint com zero erros e
+zero warnings antes de aprovação
 
 **Scale/Scope**: Case local de demonstração com 50 produtos gerados deterministicamente no seed,
 um estoque lógico e uma moeda; uma instância de API e uma de worker por padrão, preservando
@@ -68,6 +72,7 @@ Não existem itens `NEEDS CLARIFICATION` após a pesquisa da Phase 0.
 | Simplicidade e escopo | PASS | Um pacote, uma imagem, API e worker; sem microsserviços, framework de jobs ou capacidades excluídas. |
 | Especificação pronta | PASS | A spec define sucessos, erros, concorrência, cache, estados, retries, observabilidade e critérios mensuráveis. |
 | TDD e integridade | PASS | Testes começam pelas regras puras e cobrem concorrência real, idempotência, reservas, cache, outbox, duplicatas e worker. |
+| Qualidade estática e aprovação | PASS | Flat config tipado, Prettier separado, `--max-warnings=0`, typecheck e todas as suites compõem `npm run verify`, obrigatório para toda alteração de código. |
 | Isolamento do negócio | PASS | Domínio e casos de uso dependem de ports; adapters implementam Fastify, Prisma, Redis, RabbitMQ e ERP. |
 | Consistência | PASS | Update condicional, claim idempotente único, reserva e outbox pertencem à mesma transação PostgreSQL. |
 | Contrato e observabilidade | PASS | JSON Schema/OpenAPI, Pino correlacionado e métricas Prometheus fazem parte dos contratos e testes. |
@@ -137,6 +142,9 @@ tests/
 └── helpers/
 Dockerfile
 docker-compose.yml
+eslint.config.mjs
+.prettierrc.json
+.prettierignore
 prisma.config.ts
 package.json
 tsconfig.json
@@ -164,8 +172,38 @@ orientam o design são:
    cache obsoleto entre os processos de API e worker;
 7. gerar 50 produtos locais com `@faker-js/faker`, seed fixa e IDs derivados do índice, inserindo
    somente ausentes para preservar estoque alterado entre reinícios.
+8. usar ESLint flat config com análise TypeScript tipada, Prettier separado e um gate único que
+   reprova warnings, falhas de formatação, typecheck ou qualquer suite de testes.
 
 ## Phase 1: Design
+
+### Gate estático e aprovação de código
+
+`eslint.config.mjs` usa `@eslint/js`, `typescript-eslint` e `globals.nodeBuiltin` para ESM em
+Node.js. Arquivos TypeScript de `src/`, `tests/`, `prisma/`, scripts e configurações estendem
+`strictTypeChecked` e `stylisticTypeChecked`, com `parserOptions.projectService` e
+`tsconfigRootDir = import.meta.dirname` para usar os mesmos projetos TypeScript do editor e do
+`tsc`. O Project Service permite somente o glob raiz `*.config.ts` como default project para
+configurações fora do `include`; arquivos JavaScript/MJS recebem regras recomendadas sem typecheck.
+
+Os ignores ficam no próprio flat config: `node_modules/**`, `dist/**`, `coverage/**` e
+`src/generated/prisma/**`. Código-fonte, testes, seed e configurações escritas pela equipe não
+podem ser ignorados. Diretivas `eslint-disable` exigem descrição e não podem substituir correção de
+um erro válido; qualquer exceção de regra deve ser localizada e justificada na revisão.
+`reportUnusedDisableDirectives` e `reportUnusedInlineConfigs` ficam em `error` para impedir
+supressões ou configurações inline obsoletas.
+
+Prettier permanece uma ferramenta separada: `.prettierrc.json` define o formato,
+`.prettierignore` exclui dependências, outputs e código gerado, e `eslint-config-prettier/flat` é
+aplicado por último para desligar somente regras conflitantes. Não será usado `eslint-plugin-prettier`,
+evitando executar o formatador dentro do linter.
+
+Scripts planejados: `lint` executa `eslint . --max-warnings=0`; `lint:fix` adiciona `--fix` sem
+alterar o comportamento do gate; `format` executa `prettier --write .`; `format:check` executa
+`prettier --check .`; `typecheck` executa `tsc --noEmit`; `test` executa todas as suites Vitest; e
+`verify` encadeia `lint`, `format:check`, `typecheck` e `test`. Toda alteração de código só pode ser
+aprovada quando `npm run verify` termina com código `0`; não há baseline de débitos ou warnings
+aceitos. O mesmo comando roda no serviço `test` do Docker Compose para evidência reproduzível.
 
 ### Seed local do catálogo
 
@@ -256,6 +294,12 @@ Relógio, sleeper, RNG e ERP são injetados para evitar testes reais de 60 segun
 Ao menos um teste concorrente usa PostgreSQL real; mocks não são aceitos como prova de
 atomicidade ou prevenção de overselling.
 
+Antes de qualquer aprovação, `npm run verify` deve comprovar, nessa ordem, ESLint sem warnings,
+formatação Prettier, `tsc --noEmit` e todas as suites. Testes isolados continuam úteis durante TDD,
+mas não substituem o gate completo. Mudanças somente documentais podem usar os checks aplicáveis;
+qualquer alteração em `.ts`, `.js`, `.mjs`, dependências ou configuração de build/teste é alteração
+de código para esse gate.
+
 ## Post-Design Constitution Check
 
 **PASS**. O modelo em [data-model.md](./data-model.md), a matriz em
@@ -264,7 +308,9 @@ validação em [quickstart.md](./quickstart.md) preservam todos os gates. A gera
 catálogo adiciona uma única linha/tabela de metadados; essa complexidade é justificada pela regra
 que proíbe reusar cache obsoleto quando API e worker são processos separados. Faker permanece
 restrito à preparação local, com seed determinística e insert não destrutivo; não altera regras de
-negócio nem contratos. Não há outra violação constitucional.
+negócio nem contratos. O gate ESLint/Prettier/typecheck/testes adiciona somente configuração e
+scripts locais, cobre todo código mantido pela equipe e torna explícita a evidência já exigida para
+aprovação. Não há outra violação constitucional.
 
 ## Complexity Tracking
 

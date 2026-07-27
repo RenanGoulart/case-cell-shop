@@ -79,3 +79,13 @@
 - **Result**: Atualizados `plan.md`, `research.md`, `data-model.md`, `test-scenarios.md` e
   `quickstart.md` com geração determinística, execução explícita pelo Prisma, persistência
   não destrutiva, invalidação coerente do cache e testes do seed. Contratos públicos preservados.
+
+## 2026-07-27 — Revisão do plano: ESLint obrigatório
+
+- **Command**: `$speckit-plan`
+- **Purpose**: Tornar lint, formatação, typecheck e testes gates objetivos para aprovação de código.
+- **Prompt summary**: Configurar ESLint estrito e tipado com Prettier separado, reprovar warnings,
+  analisar todo código mantido e exigir `npm run verify` antes de aprovar qualquer alteração.
+- **Result**: Atualizados `plan.md`, `research.md`, `test-scenarios.md` e `quickstart.md` com flat
+  config, escopo/ignores, scripts, cenários de validação e gate reproduzível pelo Docker Compose.
+  Modelo de dados e contratos públicos foram preservados por não sofrerem impacto.
