@@ -41,30 +41,30 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T013 [P] Write failing unit tests for order status transition rules and terminal-state guards in tests/unit/orders/order-state.test.ts
-- [ ] T014 [P] Write failing unit tests for reservation state transitions and single-release markers in tests/unit/orders/reservation-state.test.ts
-- [ ] T015 [P] Write failing unit tests for checkout payload validation and canonical JSON hashing in tests/unit/orders/canonical-payload.test.ts
-- [ ] T016 [P] Write failing unit tests for ERP result classification and 80/10/5/5 distribution using seeded RNG in tests/unit/orders/erp-simulator.test.ts
-- [ ] T017 Implement order status transition rules in src/modules/orders/domain/order-state.ts
-- [ ] T018 Implement reservation state transition rules in src/modules/orders/domain/reservation-state.ts
-- [ ] T019 Implement checkout payload canonicalization, duplicate product rejection and SHA-256 hashing in src/modules/orders/domain/canonical-payload.ts
-- [ ] T020 Implement ERP simulator decision model and forced/probabilistic result types in src/modules/orders/domain/erp-result.ts
-- [ ] T021 Define shared domain errors and HTTP-safe error codes in src/shared/errors.ts
-- [ ] T022 Define Zod schemas for products, checkout, order status, success responses, error envelopes and metrics headers in src/api/schemas/http.ts
-- [ ] T023 Define Zod order processing message schema and JSON Schema export aligned to contracts/order-processing-message.schema.json in src/worker/schemas/order-processing-message.ts
-- [ ] T024 Create Prisma schema with products, catalog state, orders, order items, idempotency records, stock reservations, reservation items, processing attempts and outbox events in prisma/schema.prisma
-- [ ] T025 Create initial migration with PostgreSQL enums, checks, partial indexes, unique constraints and conditional claim indexes in prisma/migrations/001_initial/migration.sql
-- [ ] T026 Configure Prisma 7 adapter and generated client location in prisma.config.ts
-- [ ] T027 Write failing integration tests for deterministic Faker seed, idempotent re-run and CatalogState version increment behavior in tests/integration/seed.test.ts
-- [ ] T028 Implement deterministic 50-product Faker seed with non-destructive createMany and conditional catalog version increment in prisma/seed.ts
-- [ ] T029 Create Prisma client factory and transaction helper with no network calls inside transactions in src/adapters/database/prisma.ts
-- [ ] T030 Create Fastify app builder with Zod type provider, requestId, correlationId, error envelope, Swagger/OpenAPI and metrics plugins in src/api/app.ts
-- [ ] T031 Create API process entrypoint that opens the Fastify socket only from main in src/api/main.ts
-- [ ] T032 Create worker process entrypoint and lifecycle wiring without business logic in src/worker/main.ts
-- [ ] T033 Create Redis client adapter shell with health state and namespace constants in src/adapters/cache/redis-client.ts
-- [ ] T034 Create RabbitMQ connection adapter shell with durable exchange, queue and DLQ declarations in src/adapters/messaging/rabbitmq.ts
-- [ ] T035 Create Pino logger factory and child-context helpers for HTTP and worker flows in src/observability/logger.ts
-- [ ] T036 Create Prometheus metric registry factories for API and worker without high-cardinality labels in src/observability/metrics.ts
+- [X] T013 [P] Write failing unit tests for order status transition rules and terminal-state guards in tests/unit/orders/order-state.test.ts
+- [X] T014 [P] Write failing unit tests for reservation state transitions and single-release markers in tests/unit/orders/reservation-state.test.ts
+- [X] T015 [P] Write failing unit tests for checkout payload validation and canonical JSON hashing in tests/unit/orders/canonical-payload.test.ts
+- [X] T016 [P] Write failing unit tests for ERP result classification and 80/10/5/5 distribution using seeded RNG in tests/unit/orders/erp-simulator.test.ts
+- [X] T017 Implement order status transition rules in src/modules/orders/domain/order-state.ts
+- [X] T018 Implement reservation state transition rules in src/modules/orders/domain/reservation-state.ts
+- [X] T019 Implement checkout payload canonicalization, duplicate product rejection and SHA-256 hashing in src/modules/orders/domain/canonical-payload.ts
+- [X] T020 Implement ERP simulator decision model and forced/probabilistic result types in src/modules/orders/domain/erp-result.ts
+- [X] T021 Define shared domain errors and HTTP-safe error codes in src/shared/errors.ts
+- [X] T022 Define Zod schemas for products, checkout, order status, success responses, error envelopes and metrics headers in src/api/schemas/http.ts
+- [X] T023 Define Zod order processing message schema and JSON Schema export aligned to contracts/order-processing-message.schema.json in src/worker/schemas/order-processing-message.ts
+- [X] T024 Create Prisma schema with products, catalog state, orders, order items, idempotency records, stock reservations, reservation items, processing attempts and outbox events in prisma/schema.prisma
+- [X] T025 Create initial migration with PostgreSQL enums, checks, partial indexes, unique constraints and conditional claim indexes in prisma/migrations/001_initial/migration.sql
+- [X] T026 Configure Prisma 7 adapter and generated client location in prisma.config.ts
+- [X] T027 Write failing integration tests for deterministic Faker seed, idempotent re-run and CatalogState version increment behavior in tests/integration/seed.test.ts
+- [X] T028 Implement deterministic 50-product Faker seed with non-destructive createMany and conditional catalog version increment in prisma/seed.ts
+- [X] T029 Create Prisma client factory and transaction helper with no network calls inside transactions in src/adapters/database/prisma.ts
+- [X] T030 Create Fastify app builder with Zod type provider, requestId, correlationId, error envelope, Swagger/OpenAPI and metrics plugins in src/api/app.ts
+- [X] T031 Create API process entrypoint that opens the Fastify socket only from main in src/api/main.ts
+- [X] T032 Create worker process entrypoint and lifecycle wiring without business logic in src/worker/main.ts
+- [X] T033 Create Redis client adapter shell with health state and namespace constants in src/adapters/cache/redis-client.ts
+- [X] T034 Create RabbitMQ connection adapter shell with durable exchange, queue and DLQ declarations in src/adapters/messaging/rabbitmq.ts
+- [X] T035 Create Pino logger factory and child-context helpers for HTTP and worker flows in src/observability/logger.ts
+- [X] T036 Create Prometheus metric registry factories for API and worker without high-cardinality labels in src/observability/metrics.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in priority order or in parallel where dependencies allow.
 
@@ -80,22 +80,22 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 > Write these tests FIRST and confirm each fails for the expected reason.
 
-- [ ] T037 [P] [US1] Write failing contract tests for GET /products 200, 204 without body, 503 error envelope and request/correlation headers in tests/contract/products.test.ts
-- [ ] T038 [P] [US1] Write failing unit tests for catalog cache hit, miss, expired entry, invalid payload, version mismatch and 500ms database artificial delay decisions in tests/unit/catalog/catalog-cache.test.ts
-- [ ] T039 [P] [US1] Write failing integration tests for Redis GET/SET/DEL failure, degraded mode, recovery reload, PostgreSQL fallback and 50% faster Redis hit with 500ms database artificial delay in tests/integration/catalog-cache.test.ts
-- [ ] T040 [P] [US1] Write failing integration tests for concurrent cache expiration reads and single-flight refresh behavior in tests/integration/catalog-concurrency.test.ts
-- [ ] T041 [P] [US1] Write failing OpenAPI snapshot test for /products and /metrics contract coverage in tests/contract/openapi-products.test.ts
+- [X] T037 [P] [US1] Write failing contract tests for GET /products 200, 204 without body, 503 error envelope and request/correlation headers in tests/contract/products.test.ts
+- [X] T038 [P] [US1] Write failing unit tests for catalog cache hit, miss, expired entry, invalid payload, version mismatch and 500ms database artificial delay decisions in tests/unit/catalog/catalog-cache.test.ts
+- [X] T039 [P] [US1] Write failing integration tests for Redis GET/SET/DEL failure, degraded mode, recovery reload, PostgreSQL fallback and 50% faster Redis hit with 500ms database artificial delay in tests/integration/catalog-cache.test.ts
+- [X] T040 [P] [US1] Write failing integration tests for concurrent cache expiration reads and single-flight refresh behavior in tests/integration/catalog-concurrency.test.ts
+- [X] T041 [P] [US1] Write failing OpenAPI snapshot test for /products and /metrics contract coverage in tests/contract/openapi-products.test.ts
 
 ### Implementation for User Story 1
 
-- [ ] T042 [P] [US1] Define catalog ports for product repository, cache repository and metrics in src/modules/catalog/ports/catalog-ports.ts
-- [ ] T043 [P] [US1] Implement catalog product mapping and money serialization rules in src/modules/catalog/domain/product.ts
-- [ ] T044 [US1] Implement ListProductsUseCase with cache-aside, TTL, CatalogState version validation, 204 empty result, degraded Redis behavior and configurable 500ms artificial database delay for local cache validation in src/modules/catalog/application/list-products.ts
-- [ ] T045 [US1] Implement Prisma catalog repository for products and CatalogState reads in src/adapters/database/catalog-repository.ts
-- [ ] T046 [US1] Implement Redis catalog cache adapter with key casecellshop:v1:products, TTL, payload validation and circuit breaker in src/adapters/cache/catalog-cache.ts
-- [ ] T047 [US1] Implement catalog route with Zod request/response schema binding for GET /products in src/api/routes/products.ts
-- [ ] T048 [US1] Register catalog route and API metrics endpoint in src/api/app.ts
-- [ ] T049 [US1] Add catalog metrics for duration, hit, miss, Redis failures, fallback and degraded mode transitions in src/observability/catalog-metrics.ts
+- [X] T042 [P] [US1] Define catalog ports for product repository, cache repository and metrics in src/modules/catalog/ports/catalog-ports.ts
+- [X] T043 [P] [US1] Implement catalog product mapping and money serialization rules in src/modules/catalog/domain/product.ts
+- [X] T044 [US1] Implement ListProductsUseCase with cache-aside, TTL, CatalogState version validation, 204 empty result, degraded Redis behavior and configurable 500ms artificial database delay for local cache validation in src/modules/catalog/application/list-products.ts
+- [X] T045 [US1] Implement Prisma catalog repository for products and CatalogState reads in src/adapters/database/catalog-repository.ts
+- [X] T046 [US1] Implement Redis catalog cache adapter with key casecellshop:v1:products, TTL, payload validation and circuit breaker in src/adapters/cache/catalog-cache.ts
+- [X] T047 [US1] Implement catalog route with Zod request/response schema binding for GET /products in src/api/routes/products.ts
+- [X] T048 [US1] Register catalog route and API metrics endpoint in src/api/app.ts
+- [X] T049 [US1] Add catalog metrics for duration, hit, miss, Redis failures, fallback and degraded mode transitions in src/observability/catalog-metrics.ts
 
 **Checkpoint**: User Story 1 is independently functional and testable.
 
