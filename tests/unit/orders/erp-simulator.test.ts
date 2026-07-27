@@ -5,7 +5,8 @@ import {
   createForcedErpDecision,
   type ErpResult,
 } from "@/modules/orders/domain/erp-result.js";
-import { SeededRandomGenerator } from "@tests/helpers/runtime.js";
+import { SimulatedErpClient } from "@/adapters/erp/simulated-erp-client.js";
+import { FakeSleeper, SeededRandomGenerator } from "@tests/helpers/runtime.js";
 
 describe("ERP result decision model", () => {
   it.each<ErpResult>(["confirmed", "temporarily_unavailable", "unavailable", "timeout"])(
@@ -46,5 +47,28 @@ describe("ERP result decision model", () => {
     expect(counts.unavailable / 1_000).toBeLessThanOrEqual(0.09);
     expect(counts.timeout / 1_000).toBeGreaterThanOrEqual(0.01);
     expect(counts.timeout / 1_000).toBeLessThanOrEqual(0.09);
+  });
+
+  it("classifies forced timeout through injected sleeper without real 60-second wait", async () => {
+    const sleeper = new FakeSleeper();
+    const client = new SimulatedErpClient({
+      mode: "timeout",
+      randomGenerator: new SeededRandomGenerator(20260727),
+      sleeper,
+      timeoutMs: 60_000,
+    });
+
+    await expect(
+      client.processOrder({
+        version: 1,
+        eventId: "00000000-0000-4000-8000-000000000001",
+        orderId: "00000000-0000-4000-8000-000000000002",
+        requestId: "00000000-0000-4000-8000-000000000003",
+        correlationId: "00000000-0000-4000-8000-000000000004",
+        attemptNumber: 1,
+        occurredAt: "2026-07-27T00:00:00.000Z",
+      }),
+    ).resolves.toEqual({ result: "timeout" });
+    expect(sleeper.sleeps).toEqual([60_000]);
   });
 });

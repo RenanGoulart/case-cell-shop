@@ -197,26 +197,26 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 > Write these tests FIRST and confirm each fails for the expected reason.
 
-- [ ] T082 [P] [US5] Write failing unit tests for ERP simulator forced results, 1.000-attempt seeded probabilistic distribution with 4 percentage point tolerance and timeout classification without real 60-second waits in tests/unit/orders/erp-simulator.test.ts
-- [ ] T083 [P] [US5] Write failing unit tests for processing transition decisions, retry exhaustion and reservation release outcomes in tests/unit/orders/order-processing.test.ts
-- [ ] T084 [P] [US5] Write failing integration tests for outbox claim with FOR UPDATE SKIP LOCKED, lease expiry and stale lockToken protection in tests/integration/outbox-publisher.test.ts
-- [ ] T085 [P] [US5] Write failing integration tests for RabbitMQ publish confirms, unroutable messages and duplicate publish safety in tests/integration/rabbitmq-publisher.test.ts
-- [ ] T086 [P] [US5] Write failing integration tests for worker consumer duplicate delivery, terminal no-op and one attempt per order/attempt number in tests/integration/order-consumer-idempotency.test.ts
-- [ ] T087 [P] [US5] Write failing e2e tests for confirmed, temporarily unavailable, unavailable, timeout, third retry failure and late ERP response in tests/e2e/erp-results.test.ts
-- [ ] T088 [P] [US5] Write failing integration tests for reservation expiration sweeper and single stock restitution in tests/integration/reservation-expiration.test.ts
+- [X] T082 [P] [US5] Write failing unit tests for ERP simulator forced results, 1.000-attempt seeded probabilistic distribution with 4 percentage point tolerance and timeout classification without real 60-second waits in tests/unit/orders/erp-simulator.test.ts
+- [X] T083 [P] [US5] Write failing unit tests for processing transition decisions, retry exhaustion and reservation release outcomes in tests/unit/orders/order-processing.test.ts
+- [X] T084 [P] [US5] Write failing integration tests for outbox claim with FOR UPDATE SKIP LOCKED, lease expiry and stale lockToken protection in tests/integration/outbox-publisher.test.ts
+- [X] T085 [P] [US5] Write failing integration tests for RabbitMQ publish confirms, unroutable messages and duplicate publish safety in tests/integration/rabbitmq-publisher.test.ts
+- [X] T086 [P] [US5] Write failing integration tests for worker consumer duplicate delivery, terminal no-op and one attempt per order/attempt number in tests/integration/order-consumer-idempotency.test.ts
+- [X] T087 [P] [US5] Write failing e2e tests for confirmed, temporarily unavailable, unavailable, timeout, third retry failure and late ERP response in tests/e2e/erp-results.test.ts
+- [X] T088 [P] [US5] Write failing integration tests for reservation expiration sweeper and single stock restitution in tests/integration/reservation-expiration.test.ts
 
 ### Implementation for User Story 5
 
-- [ ] T089 [P] [US5] Implement simulated ERP client with forced mode, probabilistic mode, injected clock, sleeper and RNG in src/adapters/erp/simulated-erp-client.ts
-- [ ] T090 [US5] Implement outbox publisher polling, claim lease, publisher confirm and conditional published update in src/worker/outbox-publisher.ts
-- [ ] T091 [US5] Implement RabbitMQ publisher and consumer adapter with durable exchange, classic queue, DLQ, persistent messages, mandatory publish, prefetch=1 and manual ack in src/adapters/messaging/rabbitmq.ts
-- [ ] T092 [US5] Implement order consumer claim flow that transitions pending/retrying to processing, creates ProcessingAttempt and guards attempt uniqueness in src/worker/order-consumer.ts
-- [ ] T093 [US5] Implement ERP attempt completion transaction for confirmed, temporarily_unavailable, unavailable and timeout in src/modules/orders/application/finish-processing-attempt.ts
-- [ ] T094 [US5] Implement retry scheduling by creating one new outbox event with availableAt after retryable ERP outcomes in src/adapters/database/processing-repository.ts
-- [ ] T095 [US5] Implement reservation consume, release and catalog generation increment rules inside processing transactions in src/adapters/database/processing-repository.ts
-- [ ] T096 [US5] Implement recovery sweeper for abandoned processing attempts and late timeout application in src/worker/recovery-sweeper.ts
-- [ ] T097 [US5] Implement reservation expirer with FOR UPDATE SKIP LOCKED, order failure and single stock restitution in src/worker/reservation-expirer.ts
-- [ ] T098 [US5] Wire worker main loop for publisher, consumer, recovery sweeper, reservation expirer and graceful shutdown in src/worker/main.ts
+- [X] T089 [P] [US5] Implement simulated ERP client with forced mode, probabilistic mode, injected clock, sleeper and RNG in src/adapters/erp/simulated-erp-client.ts
+- [X] T090 [US5] Implement outbox publisher polling, claim lease, publisher confirm and conditional published update in src/worker/outbox-publisher.ts
+- [X] T091 [US5] Implement RabbitMQ publisher and consumer adapter with durable exchange, classic queue, DLQ, persistent messages, mandatory publish, prefetch=1 and manual ack in src/adapters/messaging/rabbitmq.ts
+- [X] T092 [US5] Implement order consumer claim flow that transitions pending/retrying to processing, creates ProcessingAttempt and guards attempt uniqueness in src/worker/order-consumer.ts
+- [X] T093 [US5] Implement ERP attempt completion transaction for confirmed, temporarily_unavailable, unavailable and timeout in src/modules/orders/application/finish-processing-attempt.ts
+- [X] T094 [US5] Implement retry scheduling by creating one new outbox event with availableAt after retryable ERP outcomes in src/adapters/database/processing-repository.ts
+- [X] T095 [US5] Implement reservation consume, release and catalog generation increment rules inside processing transactions in src/adapters/database/processing-repository.ts
+- [X] T096 [US5] Implement recovery sweeper for abandoned processing attempts and late timeout application in src/worker/recovery-sweeper.ts
+- [X] T097 [US5] Implement reservation expirer with FOR UPDATE SKIP LOCKED, order failure and single stock restitution in src/worker/reservation-expirer.ts
+- [X] T098 [US5] Wire worker main loop for publisher, consumer, recovery sweeper, reservation expirer and graceful shutdown in src/worker/main.ts
 
 **Checkpoint**: User Story 5 is independently functional and testable.
 
