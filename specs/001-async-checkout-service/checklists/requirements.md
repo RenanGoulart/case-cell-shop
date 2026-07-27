@@ -36,3 +36,6 @@
   retry limit are documented as explicit assumptions and business rules.
 - HTTP endpoints and OpenAPI are treated as requested external contracts, not implementation
   choices.
+- Revalidated after q1/q2/q3 answers: Grafana, Prometheus-visible metrics and no-op spans are
+  treated as explicit delivery evidence requested by the stakeholder, not incidental implementation
+  choices.

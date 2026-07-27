@@ -24,6 +24,65 @@ describe("metrics contracts", () => {
     await app.close();
   });
 
+  it("records checkout acceptance metrics on the API registry", async () => {
+    const app = await buildApp(testAppConfig(), {
+      checkout: {
+        acceptCheckout: {
+          execute: () =>
+            Promise.resolve({
+              orderId: "00000000-0000-4000-8000-000000000001",
+              status: "pending",
+            }),
+        },
+      },
+    });
+
+    await app.inject({
+      method: "POST",
+      url: "/checkout",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": "metrics-key-1",
+      },
+      payload: { items: [{ productId: "case-product-001", quantity: 1 }] },
+    });
+
+    const response = await app.inject({ method: "GET", url: "/metrics" });
+
+    expect(response.body).toContain("casecellshop_checkout_accepted_total 1");
+    expect(response.body).toContain("casecellshop_checkout_accept_duration_ms_count 1");
+    expect(response.body).not.toContain("metrics-key-1");
+
+    await app.close();
+  });
+
+  it("records invalid checkout metrics for validation failures", async () => {
+    const app = await buildApp(testAppConfig(), {
+      checkout: {
+        acceptCheckout: {
+          execute: () => Promise.reject(new Error("should not execute")),
+        },
+      },
+    });
+
+    await app.inject({
+      method: "POST",
+      url: "/checkout",
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": "metrics-key-2",
+      },
+      payload: { items: [] },
+    });
+
+    const response = await app.inject({ method: "GET", url: "/metrics" });
+
+    expect(response.body).toContain("casecellshop_checkout_invalid_total 1");
+    expect(response.body).not.toContain("metrics-key-2");
+
+    await app.close();
+  });
+
   it("returns worker Prometheus metrics with text content type", async () => {
     const metrics = createWorkerMetricsRegistry();
     const server = await startWorkerMetricsServer({

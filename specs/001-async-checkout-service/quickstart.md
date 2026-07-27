@@ -7,22 +7,24 @@ Este guia descreve a validação esperada após a implementação. Ele não subs
 ## Prerequisites
 
 - Docker Engine/Desktop com Docker Compose v2.
-- Portas locais livres: `3000`, `9091`, `5432`, `6379`, `5672` e `15672`.
+- Portas locais livres: `3000`, `3001`, `9090`, `9091`, `5432`, `6379`, `5672` e `15672`.
 - Opcional para execução fora dos containers: Node.js 24 LTS e npm compatível.
 
 Não são necessários PostgreSQL, Redis, RabbitMQ ou Prisma instalados globalmente.
 
 ## Planned Compose Services
 
-| Service | Purpose | Local endpoint |
-|---------|---------|----------------|
-| `postgres` | Fonte autoritativa e migrations | `localhost:5432` |
-| `redis` | Cache não autoritativo | `localhost:6379` |
-| `rabbitmq` | Broker e management UI | AMQP `localhost:5672`; UI `http://localhost:15672` |
-| `migrate` | `prisma migrate deploy` e `prisma db seed` determinístico com Faker; encerra com sucesso | — |
-| `api` | Fastify HTTP | `http://localhost:3000` |
-| `worker` | Publisher, consumer e sweepers | métricas em `http://localhost:9091` |
-| `test` | Suite Vitest sob profile `test` | — |
+| Service      | Purpose                                                                                  | Local endpoint                                     |
+| ------------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `postgres`   | Fonte autoritativa e migrations                                                          | `localhost:5432`                                   |
+| `redis`      | Cache não autoritativo                                                                   | `localhost:6379`                                   |
+| `rabbitmq`   | Broker e management UI                                                                   | AMQP `localhost:5672`; UI `http://localhost:15672` |
+| `migrate`    | `prisma migrate deploy` e `prisma db seed` determinístico com Faker; encerra com sucesso | —                                                  |
+| `api`        | Fastify HTTP                                                                             | `http://localhost:3000`                            |
+| `worker`     | Publisher, consumer e sweepers                                                           | métricas em `http://localhost:9091`                |
+| `prometheus` | Coleta métricas da API e do worker                                                       | `http://localhost:9090`                            |
+| `grafana`    | Visualização local das métricas                                                          | `http://localhost:3001`                            |
+| `test`       | Suite Vitest sob profile `test`                                                          | —                                                  |
 
 `api`, `worker`, `migrate` e `test` usam a mesma imagem. API/worker mudam apenas command, portas e
 variáveis de processo.
@@ -80,10 +82,10 @@ O serviço `migrate` executa explicitamente `prisma db seed`. O gerador usa `fak
 `20260727` e cria 50 candidatos com nomes, preços e disponibilidade local. Os IDs são estáveis; os
 dois primeiros continuam disponíveis para os exemplos:
 
-| Index | ID | Initial availability |
-|-------|----|----------------------|
-| `1` | `11111111-1111-4111-8111-111111111111` | entre 10 e 100 |
-| `2` | `22222222-2222-4222-8222-222222222222` | entre 10 e 100 |
+| Index | ID                                     | Initial availability |
+| ----- | -------------------------------------- | -------------------- |
+| `1`   | `11111111-1111-4111-8111-111111111111` | entre 10 e 100       |
+| `2`   | `22222222-2222-4222-8222-222222222222` | entre 10 e 100       |
 
 Em uma base limpa, confirme a quantidade:
 
@@ -93,8 +95,7 @@ docker compose exec postgres psql -U casecellshop -d casecellshop -tAc "SELECT c
 
 O resultado esperado é `50`. A reexecução `docker compose run --rm migrate` é não destrutiva:
 produtos presentes, inclusive estoque já consumido, não são sobrescritos; somente IDs ausentes são
-inseridos. Preços e disponibilidade devem ser obtidos por `GET /products`. O seed é uma massa local
-e não representa sincronização com ERP.
+inseridos. Preços e disponibilidade devem ser obtidos por `GET /products`. O seed é uma massa local, não invalida cache ativamente e não representa sincronização com ERP.
 
 ## Validate the Catalog
 
@@ -117,7 +118,8 @@ Esperado:
 - headers `x-request-id` e `x-correlation-id` em ambas as respostas;
 - métricas distinguindo miss e hit;
 - o miss que carrega do PostgreSQL usa atraso artificial local de 500ms para imitar latência de
-  produção; o hit Redis nao aplica esse atraso e deve ficar pelo menos 50% mais rapido em validação
+  produção; o hit Redis nao aplica esse atraso, nao executa SELECT no PostgreSQL para validar versão
+  e deve ficar pelo menos 50% mais rapido em validação
   controlada;
 - o teste de contrato `products-empty` comprova `204` sem corpo para catálogo vazio, sem exigir
   alteração manual do seed.
@@ -186,7 +188,7 @@ Esperado:
 - checkout válido não falha somente por Redis;
 - métricas registram erro, fallback e modo degradado;
 - após a recuperação, a aplicação remove/substitui a entrada antes de voltar a servir hits;
-- a geração do catálogo impede uso de disponibilidade anterior a uma mutação.
+- o cache é limitado pelo TTL de 60 segundos e não consulta PostgreSQL para validar versão em hit.
 
 ## RabbitMQ Failure
 
@@ -299,6 +301,19 @@ Validar:
 RabbitMQ management: `http://localhost:15672`. A fila `orders.dead` deve permanecer vazia nos
 fluxos válidos; mensagens com envelope inválido são encaminhadas para ela.
 
+## Validate README Operational Notes
+
+Antes de considerar a entrega concluida, confirme que `README.md` contem uma secao operacional com:
+
+- dashboard Grafana provisionado usando metricas da API e do worker;
+- pelo menos um alerta exemplo para cache degradado, falha de checkout ou falha de processamento;
+- runbook curto com passos de diagnostico para consultar `/metrics`, logs da API/worker e status do
+  pedido;
+- declaracao explicita de trace: spans no-op conectados como stub, ou bonus de trace/span nao
+  reivindicado.
+
+Essa documentacao e valida para o case local. Grafana e Prometheus fazem parte do Compose apenas para observabilidade local; Datadog e OpenTelemetry real permanecem fora do escopo.
+
 ## Stop or Reset
 
 Parar mantendo volumes:
@@ -320,6 +335,9 @@ docker compose down -v
 - Não há sincronização entre ERP e banco local.
 - Não há autenticação, pagamento, front-end, cloud ou trace distribuído real.
 - O Compose usa um broker e um banco sem alta disponibilidade.
-- Redis acelera leitura; decisões de estoque sempre usam PostgreSQL.
+- Redis acelera leitura e, em hit válido, `GET /products` retorna diretamente o cache sem SELECT no
+  PostgreSQL; decisões de estoque sempre usam PostgreSQL.
 - O atraso artificial de 500ms no carregamento do catalogo pelo banco existe apenas para
   demonstração/teste local de cache e imita latência de produção; nao e regra de negocio.
+- O cache pode refletir um snapshot de até 60 segundos. Isso é aceito para listagem porque checkout
+  não usa Redis como autoridade de estoque.

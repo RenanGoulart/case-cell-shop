@@ -1,4 +1,4 @@
-﻿import fastifySwagger from "@fastify/swagger";
+import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import {
   jsonSchemaTransform,
@@ -20,7 +20,7 @@ import { ListProductsUseCase } from "../modules/catalog/application/list-product
 import { AcceptCheckoutUseCase } from "../modules/orders/application/accept-checkout.js";
 import { GetOrderStatusUseCase } from "../modules/orders/application/get-order-status.js";
 import { createCatalogMetrics } from "../observability/catalog-metrics.js";
-import { createCheckoutMetrics } from "../observability/checkout-metrics.js";
+import { createCheckoutMetrics, type CheckoutMetrics } from "../observability/checkout-metrics.js";
 import { createLogger } from "../observability/logger.js";
 import { createApiMetricsRegistry } from "../observability/metrics.js";
 import {
@@ -59,6 +59,9 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
+  const metrics = createApiMetricsRegistry();
+  const checkoutMetrics = createCheckoutMetrics(metrics.registry);
+
   app.addHook("onRequest", requestContextHook);
 
   app.setErrorHandler((error, request, reply) => {
@@ -83,6 +86,9 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
               : "validation_failed",
         },
       });
+      if (isCheckoutRequest(request)) {
+        checkoutMetrics.recordInvalid();
+      }
       return;
     }
 
@@ -109,7 +115,6 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
     routePrefix: "/documentation",
   });
 
-  const metrics = createApiMetricsRegistry();
   app.get("/health", () => ({ status: "ok" }));
   app.get("/metrics", (_request, reply) => {
     reply.header("content-type", metrics.contentType);
@@ -133,10 +138,11 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
   );
 
   const checkoutRouteDependencies =
-    dependencies.checkout ??
-    (hasDependencyOverrides
-      ? createStubCheckoutRouteDependencies()
-      : createDefaultCheckoutRouteDependencies(config, metrics.registry));
+    dependencies.checkout !== undefined
+      ? { metrics: checkoutMetrics, ...dependencies.checkout }
+      : hasDependencyOverrides
+        ? createStubCheckoutRouteDependencies()
+        : createDefaultCheckoutRouteDependencies(config, checkoutMetrics);
   app.post(
     "/checkout",
     { schema: checkoutRouteSchema },
@@ -155,6 +161,10 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
   );
 
   return app;
+}
+
+function isCheckoutRequest(request: { readonly method: string; readonly url: string }): boolean {
+  return request.method === "POST" && request.url.split("?", 1)[0] === "/checkout";
 }
 
 function createStubProductsRouteDependencies(): ProductsRouteDependencies {
@@ -220,14 +230,14 @@ function createDefaultOrderStatusRouteDependencies(
 
 function createDefaultCheckoutRouteDependencies(
   config: AppConfig,
-  registry: ReturnType<typeof createApiMetricsRegistry>["registry"],
+  metrics: CheckoutMetrics,
 ): CheckoutRouteDependencies {
   const prisma = createPrismaClient(config.databaseUrl);
   const redis = createRedisClientAdapter(config.redisUrl);
   const cache = new RedisCatalogCache(redis);
   const repository = new PrismaCheckoutRepository(prisma);
-  const metrics = createCheckoutMetrics(registry);
   return {
+    metrics,
     acceptCheckout: new AcceptCheckoutUseCase(
       {
         repository,

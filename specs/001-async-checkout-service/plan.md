@@ -40,7 +40,11 @@ validado contra `contracts/openapi.yaml`; contrato operacional separado para mé
 
 **Observability**: Pino em JSON; `requestId` e `correlationId` nos fluxos HTTP, `correlationId` e
 `orderId` no worker; registries Prometheus separados para API e worker; trace real fora do escopo,
-com port/stub documentado
+com port/stub documentado. A entrega deve fechar as lacunas identificadas na auditoria: logs HTTP
+devem anexar `correlationId` ao contexto estruturado, as metricas de checkout declaradas devem ser
+emitidas no fluxo real, o stub de trace deve ser conectado aos pontos planejados, e o README deve apontar o Grafana
+local, o dashboard provisionado, alertas exemplo e runbook usando as metricas Prometheus
+coletadas da API e do worker
 
 **Local Execution**: Uma imagem da aplicação usada pelos serviços `api`, `worker` e `migrate`;
 `migrate` aplica migrations e executa explicitamente o seed Faker antes da API/worker, além de
@@ -69,19 +73,31 @@ Não existem itens `NEEDS CLARIFICATION` após a pesquisa da Phase 0.
 
 ## Constitution Check
 
-*GATE: aprovado antes da Phase 0 e reavaliado após a Phase 1.*
+_GATE: aprovado antes da Phase 0 e reavaliado após a Phase 1._
 
-| Gate | Status | Evidência no plano |
-|------|--------|--------------------|
-| Simplicidade e escopo | PASS | Um pacote, uma imagem, API e worker; sem microsserviços, framework de jobs ou capacidades excluídas. |
-| Especificação pronta | PASS | A spec define sucessos, erros, concorrência, cache, estados, retries, observabilidade e critérios mensuráveis. |
-| TDD e integridade | PASS | Testes começam pelas regras puras e cobrem concorrência real, idempotência, reservas, cache, outbox, duplicatas e worker. |
-| Qualidade estática e aprovação | PASS | Flat config tipado, Prettier separado, `--max-warnings=0`, typecheck e todas as suites compõem `npm run verify`, obrigatório para toda alteração de código. |
-| Isolamento do negócio | PASS | Domínio e casos de uso dependem de ports; adapters implementam Fastify, Prisma, Redis, RabbitMQ e ERP. |
-| Consistência | PASS | Update condicional, claim idempotente único, reserva e outbox pertencem à mesma transação PostgreSQL. |
-| Contrato e observabilidade | PASS | Zod/OpenAPI, Pino correlacionado e métricas Prometheus fazem parte dos contratos e testes. |
-| Execução e integrações | PASS | Compose inicia aplicação e dependências; ERP é simulado com resultados forçáveis e probabilísticos. |
-| Documentação e IA | PASS | Quickstart, README e PROMPTS.md são entregáveis explícitos; simplificações permanecem documentadas. |
+| Gate                           | Status | Evidência no plano                                                                                                                                          |
+| ------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Simplicidade e escopo          | PASS   | Um pacote, uma imagem, API e worker; sem microsserviços, framework de jobs ou capacidades excluídas.                                                        |
+| Especificação pronta           | PASS   | A spec define sucessos, erros, concorrência, cache, estados, retries, observabilidade e critérios mensuráveis.                                              |
+| TDD e integridade              | PASS   | Testes começam pelas regras puras e cobrem concorrência real, idempotência, reservas, cache, outbox, duplicatas e worker.                                   |
+| Qualidade estática e aprovação | PASS   | Flat config tipado, Prettier separado, `--max-warnings=0`, typecheck e todas as suites compõem `npm run verify`, obrigatório para toda alteração de código. |
+| Isolamento do negócio          | PASS   | Domínio e casos de uso dependem de ports; adapters implementam Fastify, Prisma, Redis, RabbitMQ e ERP.                                                      |
+| Consistência                   | PASS   | Update condicional, claim idempotente único, reserva e outbox pertencem à mesma transação PostgreSQL.                                                       |
+| Contrato e observabilidade     | PASS   | Zod/OpenAPI, Pino correlacionado e métricas Prometheus fazem parte dos contratos e testes.                                                                  |
+| Execução e integrações         | PASS   | Compose inicia aplicação e dependências; ERP é simulado com resultados forçáveis e probabilísticos.                                                         |
+| Documentação e IA              | PASS   | Quickstart, README e PROMPTS.md são entregáveis explícitos; simplificações permanecem documentadas.                                                         |
+
+### Delivery Audit Follow-up
+
+A revisao da implementacao existente nao altera as decisoes aprovadas acima, mas torna explicitas
+as pendencias necessarias para que a entrega observe todos os requisitos de avaliacao:
+
+| Area                 | Pendencia planejada                                                                                                                                             | Evidencia esperada                                                                                                                                |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Logs HTTP            | Garantir que logs estruturados do fluxo HTTP incluam `requestId` e `correlationId` no contexto do logger, preservando `orderId` quando houver pedido associado. | Teste de integracao ou contrato que capture log emitido por rota HTTP e valide os campos sem registrar payload sensivel.                          |
+| Metricas de checkout | Emitir no fluxo real as metricas de aceite, duracao e rejeicoes de checkout, alem das metricas de idempotencia ja planejadas.                                   | `/metrics` deve expor contadores/histograma apos cenarios de checkout aceito, replay, conflito, produto inexistente ou estoque insuficiente.      |
+| Trace stub           | Conectar `TracePort` no-op aos limites request, cache, repositorio/outbox e worker para reivindicar o bonus de trace/span como stub.                            | Teste unitario do port/stub conectado aos limites planejados e README sem sugerir trace distribuido real.                                         |
+| README operacional   | Adicionar Grafana local com dashboard provisionado, datasource Prometheus, alerta exemplo e runbook operacional.                                                | README contendo URL do Grafana, dashboard provisionado, paineis, consultas, alerta exemplo e procedimento de resposta usando metricas existentes. |
 
 ## Project Structure
 
@@ -172,8 +188,10 @@ orientam o design são:
 4. usar entrega pelo menos uma vez com publisher confirms, ack manual e consumidor idempotente;
 5. agendar retry de negócio criando novo evento de outbox com `availableAt`, evitando plugin ou
    topologia RabbitMQ de delay;
-6. associar a entrada Redis à geração do catálogo persistida no PostgreSQL para impedir reuso de
-   cache obsoleto entre os processos de API e worker;
+6. retornar diretamente a entrada Redis enquanto ela estiver dentro do TTL, sem consulta leve ao
+   PostgreSQL para validar versão; miss, expiração ou payload inválido carregam PostgreSQL e renovam
+   o cache. Invalidação ativa só será considerada se houver sincronização ERP-banco local, fora do
+   escopo atual;
 7. gerar 50 produtos locais com `@faker-js/faker`, seed fixa e IDs derivados do índice, inserindo
    somente ausentes para preservar estoque alterado entre reinícios.
 8. usar ESLint flat config com análise TypeScript tipada, Prettier separado e um gate único que
@@ -235,8 +253,8 @@ quickstart. Nomes são normalizados e limitados a 160 caracteres; preços ficam 
 
 O seed executa numa transação `createMany({ skipDuplicates: true })`. A primeira execução insere
 50 produtos; repetições não atualizam registros existentes, não restauram estoque consumido e não
-removem produtos externos ao seed. Se houver inserções, `CatalogState.version` é incrementada uma
-única vez na mesma transação; se nada mudar, a geração permanece igual.
+removem produtos externos ao seed. Se houver inserções, entradas Redis existentes expiram pelo TTL
+normal de 60 segundos; o seed não introduz validação de versão por leitura no PostgreSQL.
 
 Prisma 7 não executa seed automaticamente com migrations. O `prisma.config.ts` registra
 `tsx prisma/seed.ts`, e o serviço one-shot `migrate` chama `prisma migrate deploy` seguido de
@@ -251,17 +269,20 @@ local; o seed não roda no bootstrap HTTP.
 4. Para o proprietário da chave, carregar os produtos, ordenar os IDs e executar para cada item
    `UPDATE ... SET available_quantity = available_quantity - quantity WHERE available_quantity >= quantity RETURNING ...`.
 5. Criar pedido, snapshots dos itens, reserva ativa, itens da reserva e outbox; associar o pedido
-   ao registro de idempotência e incrementar a geração do catálogo.
+   ao registro de idempotência. O cache do catálogo não é invalidado nessa transação no escopo atual.
 6. Confirmar a transação e responder `202`; Redis e RabbitMQ nunca são chamados dentro dela.
 7. Em conflito de chave, consultar o registro comprometido: hash igual retorna o pedido existente;
    hash diferente retorna `409 IDEMPOTENCY_CONFLICT`.
 
 ### Cache do catálogo
 
-A entrada única armazena `{ catalogVersion, products }`, inclusive lista vazia, com TTL de 60
-segundos. Toda alteração de disponibilidade incrementa `CatalogState.version` na mesma transação.
-Em hit, a versão leve do PostgreSQL valida a geração; divergência força miss, carga atual e
-substituição. O `DEL` após commit é uma otimização best-effort, não a garantia de correção.
+A entrada única armazena `{ products }`, inclusive lista vazia, com TTL de 60 segundos. Em hit, a
+API retorna diretamente o payload válido do Redis e não executa `SELECT` no PostgreSQL para validar
+versão, geração ou disponibilidade. Miss, expiração, payload inválido ou Redis indisponível carregam
+PostgreSQL e atualizam o cache com `SET EX` quando possível. O cache pode refletir um snapshot de até
+60 segundos; isso é aceito para listagem porque checkout não usa Redis como autoridade de estoque.
+Invalidação ativa após alterações de produtos ou disponibilidade só faria sentido com uma
+sincronização ERP-banco local, que não será implementada nesta feature.
 
 Para tornar o ganho do cache mensuravel no ambiente local, o adapter de catalogo aplica um atraso
 artificial configurável de 500ms somente quando carrega produtos do PostgreSQL. Esse atraso imita
@@ -269,9 +290,9 @@ latência de produção para demonstração/teste, nao e regra de negocio e nunc
 de hit Redis.
 
 Erro de Redis abre um circuit breaker local: enquanto degradado, a listagem consulta PostgreSQL.
-Na recuperação, a aplicação obtém a geração atual e remove ou substitui a entrada antes de fechar
-o circuito. Se PostgreSQL falhar, uma entrada Redis ainda dentro do TTL pode ser usada; sem fonte
-acessível, retorna `503 CATALOG_UNAVAILABLE`.
+Na recuperação, a aplicação volta a tentar Redis normalmente, sem consulta de versão no PostgreSQL.
+Se PostgreSQL falhar durante miss ou modo degradado e não houver cache acessível dentro do TTL,
+retorna `503 CATALOG_UNAVAILABLE`.
 
 ### Outbox e RabbitMQ
 
@@ -301,6 +322,16 @@ na outbox. Pino usa child loggers. API e worker têm registries Prometheus indep
 alta cardinalidade nunca são labels. `/metrics` da API e do worker são contratos operacionais.
 Um `TracePort` no-op documentado preserva o ponto de extensão sem instalar OpenTelemetry.
 
+A atualizacao da entrega deve preservar essa decisao e acrescentar apenas o necessario para cobrir
+os requisitos pendentes: o logger HTTP deve receber child context com `requestId` e `correlationId`
+em cada request; rotas de checkout devem registrar metricas de aceite, duracao e rejeicoes sem usar
+IDs como labels; o worker deve continuar registrando `orderId` e `correlationId`; e o README deve
+documentar o dashboard Grafana provisionado, consultas Prometheus, um alerta exemplo e um runbook
+curto para cache degradado ou falhas de processamento. O `TracePort` permanece no-op e deve ser
+conectado aos spans planejados de request HTTP, leitura/escrita de cache, chamada ao
+repositorio/outbox e consumo do worker para reivindicar o bonus de trace/span sem sugerir tracing
+distribuido real.
+
 ## Test Strategy
 
 Todo comportamento aplicável segue RED → GREEN → REFACTOR. Os testes unitários vêm antes dos
@@ -312,14 +343,19 @@ adapters; testes de integração vêm antes do código SQL/conectores; contratos
 - **Contract**: todos os status/corpos/headers, `204` sem corpo, erro uniforme, schemas Zod de
   entrada e resposta reutilizados no OpenAPI, e schemas das mensagens.
 - **Integration**: seed inicial/repetido/parcial sem reset de estoque, constraint da chave,
-  requests simultâneos, rollback multi-item, estoque nunca negativo, geração de catálogo, Redis
-  hit/miss/falhas, outbox e claims concorrentes, confirms, redelivery e DLQ.
+  requests simultâneos, rollback multi-item, estoque nunca negativo, Redis hit direto sem SELECT no
+  PostgreSQL, miss/TTL/falhas, outbox e claims concorrentes, confirms, redelivery e DLQ.
 - **End-to-end**: `202` imediato, progressão do pedido, três tentativas, timeout/resultado tardio,
   falha definitiva, restituição única e rastreabilidade HTTP → outbox → mensagem → worker.
 
 Relógio, sleeper, RNG e ERP são injetados para evitar testes reais de 60 segundos ou 5 minutos.
 Ao menos um teste concorrente usa PostgreSQL real; mocks não são aceitos como prova de
 atomicidade ou prevenção de overselling.
+
+- **Delivery audit follow-up**: testes devem cobrir log HTTP com `requestId` e `correlationId`,
+  metricas de checkout aceito/replay/conflito/rejeicoes em `/metrics`, ausencia de IDs como labels,
+  comportamento do `TracePort` no-op conectado aos limites planejados, e presenca no README de
+  dashboard, alerta e runbook Grafana/Prometheus equivalente.
 
 Antes de qualquer aprovação, `npm run verify` deve comprovar, nessa ordem, ESLint sem warnings,
 formatação Prettier, `tsc --noEmit` e todas as suites. Testes isolados continuam úteis durante TDD,
@@ -331,13 +367,18 @@ de código para esse gate.
 
 **PASS**. O modelo em [data-model.md](./data-model.md), a matriz em
 [test-scenarios.md](./test-scenarios.md), os contratos em [contracts/](./contracts/) e o fluxo de
-validação em [quickstart.md](./quickstart.md) preservam todos os gates. A geração do
-catálogo adiciona uma única linha/tabela de metadados; essa complexidade é justificada pela regra
-que proíbe reusar cache obsoleto quando API e worker são processos separados. Faker permanece
-restrito à preparação local, com seed determinística e insert não destrutivo; não altera regras de
-negócio nem contratos. O gate ESLint/Prettier/typecheck/testes adiciona somente configuração e
+validação em [quickstart.md](./quickstart.md) preservam todos os gates. A simplificação do cache evita uma consulta ao PostgreSQL em todo hit e preserva o objetivo de
+velocidade da listagem. O trade-off de snapshot por até 60 segundos está documentado e é aceitável
+porque o checkout decide estoque no PostgreSQL com update atômico. Faker permanece restrito à
+preparação local, com seed determinística e insert não destrutivo; não altera regras de negócio nem
+contratos. O gate ESLint/Prettier/typecheck/testes adiciona somente configuração e
 scripts locais, cobre todo código mantido pela equipe e torna explícita a evidência já exigida para
 aprovação. Não há outra violação constitucional.
+
+A reavaliacao pos-auditoria permanece PASS para o plano, sem excecao constitucional nova. A entrega,
+contudo, somente pode ser declarada concluida quando as evidencias de logs HTTP correlacionados,
+metricas reais de checkout, trace stub conectado, e README operacional com Grafana provisionado,
+dashboard/alerta/runbook estiverem presentes.
 
 ## Complexity Tracking
 

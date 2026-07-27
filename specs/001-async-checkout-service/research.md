@@ -119,8 +119,8 @@ RETURNING id, available_quantity;
 ```
 
 Qualquer item sem retorno causa rollback integral. Na mesma transação criar pedido, itens,
-reserva, itens da reserva, associação idempotente, incremento da geração do catálogo e evento da
-outbox. Responder `202` somente depois do commit.
+reserva, itens da reserva, associação idempotente e evento da outbox. Responder `202` somente
+depois do commit. O cache do catálogo não participa da transação de checkout no escopo atual.
 
 **Rationale**: o predicado e a redução pertencem ao mesmo comando, eliminando read-modify-write.
 A transação protege carrinhos multi-item; a ordem determinística reduz deadlocks. `READ COMMITTED`
@@ -219,48 +219,47 @@ genérica de inbox. O estado da reserva é o marcador idempotente de restituiç�
 **Tests/Risks**: queda antes/depois do commit, entrega duplicada, timeout e resposta tardia,
 expiradores concorrentes, confirmação contra expiração e restituição exatamente uma vez.
 
-## 9. Redis, invalidação e recuperação
+## 9. Redis, TTL e fallback
 
-**Decision**: cache-aside com uma entrada `casecellshop:v1:products`, incluindo `[]`, formato
-`{ catalogVersion, products }` e TTL configurável de 60 segundos. `CatalogState` no PostgreSQL
-mantém uma geração monotônica, incrementada na mesma transação de toda mudança de produto ou
-disponibilidade.
-
-Em leitura, a API tenta Redis e compara a geração armazenada com a geração leve do PostgreSQL.
-Geração igual é hit; miss, payload inválido, expiração ou divergência carrega a lista do banco e
-faz `SET EX`. Se o `SET` falhar, ainda retorna os dados. Após commit de mutação, `DEL` é tentado
-como otimização. Mesmo que falhe em outro processo, a geração impede servir a entrada obsoleta
-quando o banco está acessível.
+**Decision**: cache-aside com uma entrada `casecellshop:v1:products`, contendo o snapshot de produtos
+e TTL configurável de 60 segundos. Em hit, a API retorna diretamente o valor válido do Redis sem
+executar `SELECT` no PostgreSQL para validar versão, geração ou disponibilidade. Miss, expiração,
+payload inválido ou Redis indisponível carregam a lista do PostgreSQL e tentam renovar o cache com
+`SET EX`. Se o `SET` falhar, a resposta do banco ainda é retornada.
 
 Para evidenciar o ganho de cache em ambiente local, o adapter de leitura do banco aplica atraso
-artificial configurável de 500ms somente no caminho de carga do PostgreSQL. O hit Redis nao aplica
-esse atraso. Essa escolha imita latência de produção para teste/demonstração porque o banco local
-responde rapido demais para tornar o criterio de 50% estavel.
+artificial configurável de 500ms somente no caminho de carga do PostgreSQL. O hit Redis não aplica
+esse atraso e não toca o banco.
 
-Falha Redis abre circuit breaker local com timeout curto. Enquanto aberto/half-open, nenhuma
-entrada é servida. Na recuperação, obter a geração atual e remover ou substituir a chave antes de
-fechar. Se PostgreSQL estiver indisponível, uma entrada Redis dentro do TTL pode ser usada conforme
-o contrato; sem cache acessível, retornar `503`.
+Falha Redis abre circuit breaker local com timeout curto. Enquanto aberto/half-open, a listagem
+ignora Redis e consulta PostgreSQL. Quando Redis volta a responder, o cache pode ser usado novamente
+sem validação por versão no PostgreSQL. Se PostgreSQL estiver indisponível durante miss ou modo
+degradado e não houver cache acessível dentro do TTL, retornar `503`.
 
-**Rationale**: apenas `DEL` mais estado degradado em memória não cobre falha assimétrica entre API
-e worker. Uma linha de geração é a menor coordenação persistente que garante invalidação entre os
-dois processos, mantendo Redis não autoritativo. Single-flight em memória agrupa misses por
-processo; lock distribuído não é necessário.
+Invalidação ativa de cache por alteração de produtos/disponibilidade não faz parte do escopo atual.
+Ela só deve ser planejada se existir sincronização entre ERP e banco local, que está explicitamente
+fora desta feature. O trade-off aceito é que `GET /products` pode expor um snapshot de até 60
+segundos; checkout continua seguro porque estoque é decidido exclusivamente no PostgreSQL com update
+condicional atômico.
+
+**Rationale**: validar a versão no PostgreSQL em todo `GET /products` remove parte relevante do
+benefício de velocidade do cache. Como a listagem é informativa e a decisão de venda não usa Redis,
+TTL de 60 segundos é suficiente para o case e mantém a implementação simples.
 
 **Alternatives considered**:
 
-- Apenas `DEL` após commit: simples, mas pode servir stale se o worker falhar ao invalidar enquanto
-  a API ainda alcança Redis.
+- Consulta leve de versão no PostgreSQL em todo hit: rejeitada porque reintroduz acesso ao banco e
+  reduz o propósito de velocidade do cache.
+- `CatalogState`/geração monotônica: rejeitado para o escopo atual por adicionar coordenação
+  persistente sem requisito de sincronização ERP-banco local.
+- `DEL` após cada alteração de estoque: rejeitado como garantia de correção porque checkout não deve
+  depender de cache e a invalidação ativa pertence ao cenário de sincronização fora de escopo.
+- Fallback direto para ERP: rejeitado; ERP real e sincronização ERP-banco local não são implementados.
 - Cache em memória como fallback: rejeitado por divergência entre processos.
-- Write-through/write-behind: transforma Redis em caminho crítico.
-- Lock distribuído: desnecessário para uma única chave e catálogo pequeno.
 
-**Tests/Risks**: hit/miss/TTL/lista vazia, payload corrompido, falha GET/SET/DEL, fallback, geracao
-divergente, recuperacao antes do primeiro hit, misses concorrentes, Redis+PostgreSQL indisponíveis
-e comparacao local de duração com 500ms artificiais apenas no caminho de banco.
-
-**Sources**: [Redis cache-aside](https://redis.io/docs/latest/develop/use-cases/cache-aside/),
-[Redis Node.js cache-aside](https://redis.io/docs/latest/develop/use-cases/cache-aside/nodejs/).
+**Tests/Risks**: hit direto sem SELECT no PostgreSQL, miss/TTL/lista vazia, payload corrompido,
+falha GET/SET, fallback para PostgreSQL, modo degradado, `503` quando Redis e PostgreSQL não podem
+fornecer dados, e checkout concorrente provando que Redis não é autoridade de estoque.
 
 ## 10. ERP simulado
 
@@ -316,7 +315,7 @@ Concorrência compartilhada é serializada somente nos arquivos que usam a mesma
 
 Uma imagem Node Debian slim serve `api`, `worker` e `migrate`. Compose inclui PostgreSQL, Redis,
 RabbitMQ management e os processos da aplicação; um serviço one-shot aplica `prisma migrate
-deploy` e seed antes de API/worker. Prometheus e cloud não são adicionados.
+deploy` e seed antes de API/worker. Prometheus e Grafana sao adicionados somente para observabilidade local; cloud nao e adicionada.
 
 **Rationale**: unitários rápidos protegem domínio; apenas infraestrutura real prova constraints,
 locks, atomicidade, confirms e redelivery. A mesma imagem evita divergência entre processos.
@@ -325,7 +324,7 @@ locks, atomicidade, confirms e redelivery. A mesma imagem evita divergência ent
 
 - Mockar Prisma para overselling: rejeitado porque não prova PostgreSQL.
 - Testcontainers: útil, porém Compose já é requisito e reduz ferramentas.
-- Prometheus no Compose: desnecessário; endpoints de scrape bastam.
+- Prometheus e Grafana no Compose: agora aceitos porque a entrega exige visualizacao Grafana local.
 
 **Sources**: [Fastify testing](https://fastify.dev/docs/latest/Guides/Testing/),
 [Vitest guide](https://vitest.dev/guide/).
@@ -341,15 +340,15 @@ Os IDs são derivados do índice, sem UUID aleatório do Faker, preservando os d
 quickstart.
 
 A persistência ocorre em uma transação com `createMany({ skipDuplicates: true })`. Ela insere
-apenas produtos ausentes, não atualiza estoque nem dados existentes, não remove produtos externos
-e incrementa `CatalogState.version` uma única vez somente quando ao menos uma linha é criada. O
-serviço one-shot `migrate` aguarda o PostgreSQL, executa `prisma migrate deploy` e então o seed antes
-de liberar API e worker. O seed não roda no bootstrap da API e não representa sincronização com ERP.
+apenas produtos ausentes, não atualiza estoque nem dados existentes, não remove produtos externos e
+não invalida cache ativamente. O serviço one-shot `migrate` aguarda o PostgreSQL, executa
+`prisma migrate deploy` e então o seed antes de liberar API e worker. O seed não roda no bootstrap
+da API e não representa sincronização com ERP.
 
 **Rationale**: os 50 produtos tornam o catálogo local demonstrável, enquanto RNG e IDs fixos deixam
 testes e exemplos reproduzíveis. Inserção não destrutiva permite reexecutar Compose sem restaurar
-estoque consumido nem apagar dados criados por outros fluxos. Atualizar a geração apenas quando há
-inserção mantém a invalidação do cache coerente sem provocar misses em reexecuções sem mudanças.
+estoque consumido nem apagar dados criados por outros fluxos. Como não há validação de versão por leitura, reexecuções sem mudanças não provocam misses artificiais;
+o cache existente continua limitado ao TTL de 60 segundos.
 
 **Alternatives considered**:
 
@@ -361,7 +360,7 @@ inserção mantém a invalidação do cache coerente sem provocar misses em reex
 
 **Test evidence**: unitários validam exatamente 50 candidatos determinísticos, IDs únicos e limites
 de campos. Integração cobre banco vazio, reexecução, banco parcialmente preenchido, preservação de
-estoque/dados existentes e incremento condicional da geração do catálogo.
+estoque/dados existentes e manutenção do TTL de cache como mecanismo de renovação.
 
 **Sources**: [Faker usage and seeding](https://fakerjs.dev/guide/usage),
 [Faker localization](https://fakerjs.dev/guide/localization.html),
@@ -407,3 +406,15 @@ baseline permanente.
 [typescript-eslint dependency versions](https://typescript-eslint.io/users/dependency-versions/),
 [Prettier integration with linters](https://prettier.io/docs/next/integrating-with-linters.html),
 [Prettier installation and CI check](https://prettier.io/docs/install.html).
+
+## 15. Fechamento de observabilidade pendente da auditoria
+
+**Decision**: Adicionar Prometheus e Grafana ao Compose local para visualizar metricas da API e do worker. A entrega deve provisionar datasource Prometheus, dashboard Grafana com paineis de cache, checkout e worker, incluir pelo menos um alerta exemplo e um procedimento curto de resposta. Datadog e OpenTelemetry real permanecem fora do escopo deste plano.
+
+**Rationale**: A implementacao ja expoe `/metrics` nos processos API e worker. Prometheus local coleta esses endpoints e Grafana local mostra o dashboard sem exigir servico externo ou infraestrutura de producao. As demais lacunas devem ser fechadas na instrumentacao existente: logs HTTP com contexto completo, metricas de checkout chamadas no fluxo real e trace no-op conectado ou bonus explicitamente nao reivindicado.
+
+**Alternatives considered**:
+
+- Datadog real: rejeitado por exigir servico externo, credenciais e deploy fora do escopo local.
+- Somente endpoints de scrape e exemplos no README: rejeitado porque o requisito agora pede visualizacao em Grafana.
+- OpenTelemetry real: rejeitado porque trace distribuido real segue fora do escopo; o maximo planejado e conectar o `TracePort` no-op como stub justificavel.

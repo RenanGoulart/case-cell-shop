@@ -47,19 +47,6 @@ mensagem próprios.
 
 ## Entities
 
-### CatalogState
-
-Linha singleton que coordena invalidação entre API e worker.
-
-| Field | PostgreSQL | Constraints / Notes |
-|-------|------------|---------------------|
-| `key` | `varchar(32)` | PK; valor único esperado `products`. |
-| `version` | `bigint` | NOT NULL, default `1`, `CHECK (version > 0)`. |
-| `updatedAt` | `timestamptz` | NOT NULL; atualizado com cada incremento. |
-
-Toda transação que muda campos visíveis do catálogo ou `availableQuantity` executa
-`version = version + 1`. O valor acompanha a entrada Redis e invalida logicamente gerações antigas.
-
 ### Product
 
 | Field | PostgreSQL | Constraints / Notes |
@@ -72,8 +59,9 @@ Toda transação que muda campos visíveis do catálogo ou `availableQuantity` e
 | `createdAt` | `timestamptz` | NOT NULL. |
 | `updatedAt` | `timestamptz` | NOT NULL. |
 
-Não existe endpoint de mutação de produto nesta feature. Seed e mudanças de estoque usam o mesmo
-port de persistência para garantir incremento de `CatalogState.version`.
+Não existe endpoint de mutação de produto nesta feature. Seed e mudanças de estoque persistem no
+PostgreSQL, mas não invalidam o cache Redis no escopo atual; o TTL de 60 segundos é o mecanismo de
+renovação da listagem.
 
 ### Dataset do seed local
 
@@ -91,10 +79,9 @@ Cada candidato respeita `name` não vazio com no máximo 160 caracteres, `price`
 `5000.00` construído sem ponto flutuante intermediário, `currency = BRL` e
 `availableQuantity` entre 10 e 100. A faixa positiva mantém todos os itens utilizáveis nos exemplos.
 
-Uma única transação executa `createMany` com `skipDuplicates`, preserva linhas existentes e
-incrementa `CatalogState.version` uma vez se `count > 0`; se nenhum produto for criado, a versão
-permanece igual. Uma base parcialmente preenchida recebe apenas IDs ausentes. O seed não remove
-produtos externos, não restaura estoque, não consulta ERP e não constitui sincronização ERP-local.
+Uma única transação executa `createMany` com `skipDuplicates` e preserva linhas existentes. Uma base
+parcialmente preenchida recebe apenas IDs ausentes. O seed não remove produtos externos, não restaura
+estoque, não consulta ERP, não invalida cache ativamente e não constitui sincronização ERP-local.
 
 ### Order
 
@@ -234,8 +221,6 @@ WHERE status IN ('PENDING', 'PROCESSING');
 ## Relationships
 
 ```text
-CatalogState(products)  1 metadata row
-
 Product 1 ─── * OrderItem * ─── 1 Order 1 ─── 1 IdempotencyRecord
    │                                  │
    ├──── * ReservationItem * ─── 1 StockReservation
@@ -261,7 +246,7 @@ excluídos pelo fluxo funcional.
 | `RETRYING` | Claim próxima tentativa | `PROCESSING` | Novo attempt único e token/deadline. |
 | `PROCESSING` | `CONFIRMED`, token atual, antes de expirar | `CONFIRMED` | Reserva `ACTIVE -> CONSUMED`; sem nova redução. |
 | `PROCESSING` | `TEMPORARILY_UNAVAILABLE` ou `TIMEOUT`, tentativa < 3 | `RETRYING` | Attempt finalizado e nova outbox com `availableAt`. |
-| `PROCESSING` | `UNAVAILABLE` | `FAILED` | Reserva `ACTIVE -> RELEASED`, estoque restituído uma vez, geração incrementada. |
+| `PROCESSING` | `UNAVAILABLE` | `FAILED` | Reserva `ACTIVE -> RELEASED`, estoque restituído uma vez. |
 | `PROCESSING` | Temporário/timeout na tentativa 3 | `FAILED` | Mesma restituição idempotente. |
 | `PENDING|PROCESSING|RETRYING` | Reserva atingiu `expiresAt` | `FAILED` | `RESERVATION_EXPIRED`, reserva expirada e restituição uma vez. |
 | `CONFIRMED|FAILED` | Qualquer mensagem/resultado tardio | mesmo estado | No-op e ack/registro de duplicata. |
@@ -294,19 +279,17 @@ Um `lockToken` antigo nunca pode marcar ou devolver um claim mais novo.
 ### Accept checkout
 
 Uma transação contém claim idempotente, leitura de produtos, updates condicionais, pedido,
-snapshots, reserva, associação da idempotência, geração do catálogo e outbox. Redis/RabbitMQ/ERP
-ficam fora.
+snapshots, reserva, associação da idempotência e outbox. Redis/RabbitMQ/ERP ficam fora.
 
 ### Finish ERP attempt
 
 Uma transação valida token/deadline/reserva, finaliza attempt, muda pedido e consome ou libera
-reserva. Em retry cria nova outbox; em liberação incrementa catálogo. Ack e Redis ficam depois.
+reserva. Em retry cria nova outbox; em liberação restitui estoque. Ack e Redis ficam depois.
 
 ### Expire reservation
 
 Claim com `FOR UPDATE SKIP LOCKED`; transição condicional de reserva; restituição de todos os
-itens; falha do pedido; cancelamento lógico de trabalho futuro; incremento da geração. Tudo ou
-nada.
+itens; falha do pedido; cancelamento lógico de trabalho futuro. Tudo ou nada.
 
 ### Publish outbox
 
@@ -319,15 +302,15 @@ Redis key: `casecellshop:v1:products`
 
 ```json
 {
-  "catalogVersion": "42",
   "loadedAt": "2026-07-27T12:00:00.000Z",
   "products": []
 }
 ```
 
-`catalogVersion` é string no JSON para preservar `bigint`. `products: []` é cacheável e produz
-`204`. Payload inválido é tratado como miss e removido. TTL não é duplicado como fonte de verdade
-no payload: a expiração efetiva é do Redis.
+`products: []` é cacheável e produz `204`. Payload inválido é tratado como miss e removido. Em hit,
+o payload Redis é retornado diretamente sem consulta ao PostgreSQL. TTL não é duplicado como fonte
+de verdade no payload: a expiração efetiva é do Redis. Invalidação ativa dependeria de sincronização
+ERP-banco local, fora do escopo atual.
 
 ## Retention and Cleanup
 

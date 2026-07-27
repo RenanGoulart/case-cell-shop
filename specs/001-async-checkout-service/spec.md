@@ -27,8 +27,8 @@ estoque, consulta de pedido, ERP simulado, observabilidade e contrato de API pre
 - Q: Como distribuir os 20% de resultados sem confirmação? → A: 10% de
   `temporarily_unavailable`, 5% de `unavailable` e 5% de `timeout` em cada tentativa.
 - Q: Como o serviço deve operar quando o Redis estiver indisponível? → A: Ignorar temporariamente
-  o Redis, consultar o banco local e manter catálogo e checkout disponíveis; antes de reutilizar
-  o cache após a recuperação, invalidar ou recarregar sua entrada para não servir dados obsoletos.
+  o Redis, consultar o banco local e manter catálogo e checkout disponíveis; quando o Redis voltar,
+  usar novamente o cache pelo TTL normal de 60 segundos, sem validação por versão no PostgreSQL.
 - Q: Como validar localmente o ganho de tempo do cache se o banco local responde quase
   imediatamente? -> A: O caminho de carregamento do catalogo a partir do banco local deve incluir
   atraso artificial configurável de 500ms apenas para demonstração/teste local de cache; o caminho
@@ -37,8 +37,11 @@ estoque, consulta de pedido, ERP simulado, observabilidade e contrato de API pre
 - Q: Qual evidencia estatística usar para o modo probabilístico do ERP sem deixar a suite local
   lenta? -> A: Reduzir a validação para 1.000 tentativas com RNG seeded e tolerância de 4 pontos
   percentuais por resultado, documentando que e uma amostra local reduzida para velocidade.
+- Q: O alerta operacional deve ser provisionado como regra executavel ou apenas documentado? -> A: O dashboard Grafana local deve ser provisionado; o alerta deve ser documentado no README com consulta e resposta operacional, sem exigir regra de alerta provisionada.
+- Q: O bonus de trace/span deve ser reivindicado? -> A: Sim, como stub justificavel: conectar spans no-op aos limites planejados de request, cache, repositorio/outbox e worker, sem OpenTelemetry real.
+- Q: Qual criterio de cache deve permanecer quando houver mudanca de disponibilidade? -> A: Manter TTL sem validacao de versao; a listagem pode refletir snapshot anterior por ate 60 segundos e o checkout permanece seguro porque decide estoque no banco autoritativo.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Listar produtos disponíveis (Priority: P1)
 
@@ -50,8 +53,8 @@ definida para o cache.
 isoladamente o comportamento de cache.
 
 **Independent Test**: Carregar um catálogo conhecido, consultar `GET /products` antes e depois do
-aquecimento do cache e confirmar conteúdo, hit/miss, expiração, invalidação e fallback para o
-banco local durante indisponibilidade do Redis.
+aquecimento do cache e confirmar conteúdo, hit/miss, expiração e fallback para o banco local
+durante indisponibilidade do Redis, sem consulta ao PostgreSQL em cache hit.
 
 **Acceptance Scenarios**:
 
@@ -69,9 +72,9 @@ banco local durante indisponibilidade do Redis.
 6. **Given** que o catálogo foi carregado do banco mas sua gravação no Redis falhou, **When** a
    resposta é produzida, **Then** o resultado do banco é retornado e o cache permanece em modo
    degradado.
-7. **Given** que uma alteração de disponibilidade foi confirmada enquanto o Redis estava
-   indisponível, **When** o Redis se recupera, **Then** a entrada anterior é invalidada ou
-   recarregada do banco antes de voltar a atender listagens.
+7. **Given** que existe uma entrada Redis válida, **When** `GET /products` é chamado antes do TTL
+   expirar, **Then** o serviço retorna diretamente o snapshot do cache sem consultar PostgreSQL para
+   validar versão ou disponibilidade.
 
 ---
 
@@ -195,8 +198,9 @@ hit, cache miss, retries, duração e falhas.
 **Why this priority**: O comportamento assíncrono e o cache precisam ser diagnosticáveis durante
 a demonstração e os testes.
 
-**Independent Test**: Executar uma listagem e um checkout completos e correlacionar os registros
-e métricas por requisição, processamento e pedido.
+**Independent Test**: Executar uma listagem e um checkout completos, correlacionar os registros
+e métricas por requisição, processamento e pedido, e validar que o painel operacional local
+mostra os sinais principais de cache, checkout e worker.
 
 **Acceptance Scenarios**:
 
@@ -207,6 +211,14 @@ e métricas por requisição, processamento e pedido.
 3. **Given** operações de catálogo e processamento, **When** elas terminam, **Then** métricas
    distinguem sucesso, falha, duração, cache hit/miss, fallback, modo degradado e retries conforme
    aplicável.
+4. **Given** sinais operacionais coletados, **When** a operação consulta o dashboard operacional local,
+   **Then** visualiza painéis de cache, aceite e rejeição de checkout, latência, resultados do ERP,
+   outbox, retries e falhas sem depender de serviço externo.
+5. **Given** uma anomalia de cache ou processamento, **When** a operação consulta a documentação
+   operacional, **Then** encontra uma consulta de alerta exemplo e um runbook curto de diagnóstico.
+6. **Given** rastreamento por span em modo demonstrativo, **When** fluxos HTTP, cache, repositório,
+   outbox e worker são executados, **Then** spans no-op são acionados nesses limites sem exigir
+   tracing distribuído real.
 
 ### Edge Cases
 
@@ -215,8 +227,9 @@ e métricas por requisição, processamento e pedido.
 - Um produto deixa de existir entre a listagem e o checkout.
 - O cache expira enquanto várias listagens chegam simultaneamente.
 - A fonte local do catálogo falha quando não existe entrada de cache válida.
-- O Redis falha durante leitura, renovação ou invalidação da entrada do catálogo.
-- O Redis se recupera contendo uma entrada criada antes de uma alteração de disponibilidade.
+- O Redis falha durante leitura ou renovação da entrada do catálogo.
+- Uma entrada válida do Redis pode refletir um snapshot anterior por até 60 segundos; checkout não usa
+  esse snapshot como autoridade de estoque.
 - Redis e banco local estão indisponíveis ao mesmo tempo.
 - A resposta do primeiro checkout se perde depois de o pedido ser persistido.
 - O mesmo payload chega com propriedades JSON ou itens em ordens diferentes.
@@ -227,19 +240,19 @@ e métricas por requisição, processamento e pedido.
   definitiva.
 - O pedido é consultado durante cada transição, inclusive entre `processing` e `retrying`.
 
-## Scope Boundaries *(mandatory)*
+## Scope Boundaries _(mandatory)_
 
 ### In Scope
 
 - Listagem de produtos com preço, moeda e disponibilidade.
-- Cache Redis da listagem com expiração, invalidação, hit/miss, renovação e fallback previsíveis.
+- Cache Redis da listagem com expiração, hit/miss, renovação e fallback previsíveis.
 - Checkout assíncrono com múltiplos itens e resposta imediata `202 Accepted`.
 - Idempotência por chave, detecção de payload conflitante e deduplicação concorrente.
 - Reserva de estoque com expiração e proteção contra overselling.
 - Agendamento confiável, processamento em segundo plano e retries limitados.
 - ERP simulado com sucesso, falha temporária, timeout e falha definitiva.
 - Consulta do status do pedido.
-- OpenAPI, erros previsíveis, logs estruturados e métricas básicas.
+- OpenAPI, erros previsíveis, logs estruturados, métricas básicas, dashboard operacional local, alerta documentado e runbook de diagnóstico.
 
 ### Out of Scope
 
@@ -247,7 +260,7 @@ e métricas por requisição, processamento e pedido.
 - Pagamento, cobrança, estorno ou conciliação.
 - Front-end ou aplicativo móvel.
 - Integração real com ERP e sincronização entre ERP e banco local.
-- Deploy em nuvem ou infraestrutura de produção.
+- Deploy em nuvem, monitoramento externo gerenciado ou infraestrutura de produção.
 - Carrinho persistente, promoções, frete, impostos e múltiplos centros de estoque.
 
 ### Simplifications and Limitations
@@ -260,7 +273,7 @@ e métricas por requisição, processamento e pedido.
 - Os limites de tempo e retenção usam defaults explícitos nesta especificação e podem ser
   configurados sem alterar as regras observáveis.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -268,8 +281,8 @@ e métricas por requisição, processamento e pedido.
   `id`, `name`, `price`, `currency` e `availableQuantity`.
 - **FR-002**: O sistema DEVE retornar `204 No Content` sem corpo de resposta quando não houver
   produtos.
-- **FR-003**: O sistema DEVE reutilizar uma entrada válida do cache para listagens subsequentes e
-  recarregar a fonte local após a expiração.
+- **FR-003**: O sistema DEVE reutilizar uma entrada válida do cache para listagens subsequentes sem
+  consultar PostgreSQL, e recarregar a fonte local apenas após expiração, miss ou payload inválido.
 - **FR-004**: O sistema NÃO DEVE servir uma entrada de cache após seu prazo de validade.
 - **FR-005**: O sistema DEVE disponibilizar `POST /checkout` para receber uma chave de
   idempotência e uma lista não vazia de itens com `productId` e quantidade inteira positiva.
@@ -296,11 +309,12 @@ e métricas por requisição, processamento e pedido.
   `temporarily_unavailable`, `unavailable` ou `timeout`; ausência de conclusão em até 60 segundos
   DEVE produzir `timeout`.
 - **FR-016**: O sistema DEVE tratar o Redis como acelerador não autoritativo e usar o banco local
-  como fonte do catálogo quando uma leitura, gravação ou invalidação no Redis falhar.
+  como fonte do catálogo quando uma leitura ou gravação no Redis falhar.
 - **FR-017**: A indisponibilidade isolada do Redis NÃO DEVE impedir a listagem de produtos nem
   fazer um checkout válido falhar.
-- **FR-018**: Enquanto o Redis estiver degradado, o sistema DEVE ignorá-lo nas listagens; antes de
-  reabilitar seu uso, DEVE invalidar a entrada anterior ou recarregá-la do banco local.
+- **FR-018**: Enquanto o Redis estiver degradado, o sistema DEVE ignorá-lo nas listagens; quando o
+  Redis voltar a responder, o uso do cache pode ser reabilitado sem consulta de versão no PostgreSQL,
+  mantendo o TTL de 60 segundos como limite de validade.
 
 ### Business Rules
 
@@ -337,8 +351,9 @@ e métricas por requisição, processamento e pedido.
 - **BR-013**: Se a reserva expirar antes da confirmação, o pedido DEVE terminar como `failed` com
   motivo `RESERVATION_EXPIRED`, o estoque DEVE ser liberado uma única vez e qualquer resultado
   tardio do ERP simulado NÃO PODE confirmar o pedido.
-- **BR-014**: Toda criação, consumo, liberação ou expiração de reserva que altere a disponibilidade
-  DEVE invalidar a entrada de cache do catálogo antes da próxima listagem.
+- **BR-014**: Criação, consumo, liberação ou expiração de reserva NÃO DEVEM invalidar o cache do
+  catálogo no escopo atual. O cache pode expor o último snapshot válido até o TTL; decisões de venda
+  continuam obrigatoriamente no PostgreSQL por update atômico.
 - **BR-015**: A canonicalização DEVE ordenar recursivamente as propriedades dos objetos e ordenar
   `items` por `productId`, preservando todos os valores aceitos pelo contrato. Espaçamento,
   formatação e ordem NÃO PODEM alterar o resultado; campos fora do contrato DEVEM ser rejeitados.
@@ -355,13 +370,14 @@ e métricas por requisição, processamento e pedido.
 - **BR-019**: Uma tentativa DEVE terminar como `timeout` quando não concluir em até 60 segundos.
   Qualquer resposta recebida depois desse limite NÃO PODE alterar o pedido nem contar como nova
   tentativa.
-- **BR-020**: Falha ao invalidar o Redis após uma alteração de disponibilidade NÃO DEVE reverter
-  a transação de checkout, consumo, restituição ou expiração; ela DEVE colocar o cache em modo
-  degradado para que listagens posteriores consultem o banco local.
-- **BR-021**: A recuperação do Redis somente PODE encerrar o modo degradado depois que a entrada
-  potencialmente obsoleta tiver sido removida ou substituída por dados atuais do banco local.
+- **BR-020**: Falha ao gravar ou renovar o Redis NÃO DEVE reverter transações de checkout, consumo,
+  restituição ou expiração; a listagem deve retornar o resultado do PostgreSQL quando a carga do banco
+  já tiver ocorrido e registrar a falha de cache.
+- **BR-021**: Invalidação ativa do cache por mudança externa de catálogo ou disponibilidade somente
+  deve ser planejada se houver sincronização entre ERP e banco local. Essa sincronização está fora do
+  escopo atual; portanto o TTL é o mecanismo de renovação do cache nesta feature.
 
-### Contract and Error Requirements *(include for HTTP or asynchronous interfaces)*
+### Contract and Error Requirements _(include for HTTP or asynchronous interfaces)_
 
 - **CR-001**: `GET /products` DEVE documentar `200 OK` com a lista quando houver produtos,
   `204 No Content` sem corpo quando o catálogo estiver vazio e `503 CATALOG_UNAVAILABLE` quando a
@@ -379,16 +395,19 @@ e métricas por requisição, processamento e pedido.
 - **CR-007**: O documento OpenAPI DEVE cobrir todos os endpoints, parâmetros, headers, schemas de
   sucesso, schemas de erro, exemplos e códigos HTTP definidos nesta especificação.
 
-### Observability Requirements *(include when runtime behavior is involved)*
+### Observability Requirements _(include when runtime behavior is involved)_
 
-- **OR-001**: Todo log do fluxo HTTP DEVE ser estruturado e conter `requestId`.
-- **OR-002**: Todo log de processamento assíncrono DEVE conter `correlationId` e `orderId`; quando
-  originado por checkout, o vínculo com o `requestId` inicial DEVE ser preservado.
+- **OR-001**: Todo log do fluxo HTTP DEVE ser estruturado e conter `requestId` e
+  `correlationId`; quando um checkout for aceito, o log também DEVE permitir identificar o
+  `orderId`, sem registrar payload ou chave de idempotência.
+- **OR-002**: Todo log do fluxo assíncrono DEVE ser estruturado e conter `correlationId` e
+  `orderId` quando existir; quando originado por checkout, o vínculo com o `requestId` inicial DEVE
+  ser preservado.
 - **OR-003**: Mudanças de status e tentativas de ERP DEVEM registrar resultado, duração, número da
   tentativa e classificação de falha sem registrar dados sensíveis.
 - **OR-004**: O catálogo DEVE expor contadores de cache hit, cache miss, falha de leitura,
-  gravação e invalidação, fallback para o banco, entrada e saída do modo degradado e falha de
-  carregamento, além da duração da listagem.
+  gravação, fallback para o banco, entrada e saída do modo degradado e falha de carregamento, além da
+  duração da listagem.
 - **OR-005**: O processamento assíncrono DEVE expor contadores de sucesso, falha e retry, além da
   duração de cada tentativa.
 - **OR-006**: Cada checkout DEVE registrar o resultado de idempotência como criação, replay ou
@@ -398,8 +417,16 @@ e métricas por requisição, processamento e pedido.
 - **OR-008**: Cada tentativa de ERP DEVE registrar um único resultado entre `confirmed`,
   `temporarily_unavailable`, `unavailable` e `timeout`; métricas DEVEM separar os quatro resultados
   e a quantidade de retries.
+- **OR-009**: O checkout DEVE expor métricas de aceite, duração, payload inválido, produto
+  inexistente, estoque insuficiente, criação idempotente, replay e conflito, sem usar
+  identificadores como labels.
+- **OR-010**: A operação DEVE ter um dashboard local provisionado com os sinais principais de
+  catálogo, checkout e processamento assíncrono, além de alerta exemplo documentado e runbook curto
+  para diagnóstico.
+- **OR-011**: O sistema DEVE acionar spans no-op em pontos de extensão de request, cache,
+  repositório/outbox e worker para justificar o stub de trace, sem exigir tracing distribuído real.
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
 
 - **Product**: Item vendável com identificador, nome, preço, moeda e quantidade disponível.
 - **Order**: Solicitação aceita com identificador, itens, status, datas, tentativa atual e erro
@@ -416,7 +443,7 @@ e métricas por requisição, processamento e pedido.
 - **Catalog Cache Entry**: Catálogo armazenado no Redis com instante de carregamento e expiração;
   não é fonte autoritativa e pode ser ignorado durante o modo degradado.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
@@ -428,8 +455,8 @@ e métricas por requisição, processamento e pedido.
   carga local simulada, e nenhuma entrada expirada e servida.
 - **SC-011**: Em 100% dos cenários de indisponibilidade isolada do Redis com banco local
   disponível, a listagem retorna o resultado atual do banco e checkouts válidos permanecem
-  disponíveis; após a recuperação, nenhuma entrada anterior à mudança de disponibilidade é
-  servida.
+  disponíveis; após a recuperação, entradas Redis continuam limitadas ao TTL de 60 segundos e não são
+  validadas contra versão no PostgreSQL.
 - **SC-003**: Pelo menos 95% dos checkouts válidos recebem confirmação de recebimento em até um
   segundo no ambiente local de aceite, sem aguardar o ERP simulado.
 - **SC-004**: Em 100% das repetições e disputas simultâneas testadas, chave e payloads
@@ -451,6 +478,12 @@ e métricas por requisição, processamento e pedido.
   instrumentados.
 - **SC-009**: A validação de contrato confirma cobertura OpenAPI para 100% dos endpoints,
   respostas de sucesso, respostas de erro e códigos HTTP desta especificação.
+- **SC-012**: O ambiente local provisiona um dashboard Grafana com painéis para cache, checkout,
+  latência, worker, outbox, retries e falhas; o README contém pelo menos uma consulta de alerta e
+  um runbook curto para resposta operacional.
+- **SC-013**: 100% dos fluxos instrumentados de demonstração acionam spans no-op nos limites de
+  request, cache, repositório/outbox e worker, deixando explícito que não há tracing distribuído
+  real.
 
 ## Assumptions
 

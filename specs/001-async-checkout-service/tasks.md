@@ -55,8 +55,8 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T024 Create Prisma schema with products, catalog state, orders, order items, idempotency records, stock reservations, reservation items, processing attempts and outbox events in prisma/schema.prisma
 - [X] T025 Create initial migration with PostgreSQL enums, checks, partial indexes, unique constraints and conditional claim indexes in prisma/migrations/001_initial/migration.sql
 - [X] T026 Configure Prisma 7 adapter and generated client location in prisma.config.ts
-- [X] T027 Write failing integration tests for deterministic Faker seed, idempotent re-run and CatalogState version increment behavior in tests/integration/seed.test.ts
-- [X] T028 Implement deterministic 50-product Faker seed with non-destructive createMany and conditional catalog version increment in prisma/seed.ts
+- [ ] T027 Write failing integration tests for deterministic Faker seed, idempotent re-run without cache version increment and TTL-only cache renewal in tests/integration/seed.test.ts
+- [ ] T028 Implement deterministic 50-product Faker seed with non-destructive createMany and no CatalogState/cache-version increment in prisma/seed.ts
 - [X] T029 Create Prisma client factory and transaction helper with no network calls inside transactions in src/adapters/database/prisma.ts
 - [X] T030 Create Fastify app builder with Zod type provider, requestId, correlationId, error envelope, Swagger/OpenAPI and metrics plugins in src/api/app.ts
 - [X] T031 Create API process entrypoint that opens the Fastify socket only from main in src/api/main.ts
@@ -72,17 +72,17 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 ## Phase 3: User Story 1 - Listar produtos disponíveis (Priority: P1) MVP
 
-**Goal**: List products with price and availability using Redis cache-aside with TTL, invalidation safety and database fallback.
+**Goal**: List products with price and availability using Redis cache-aside with TTL, direct cache hit without PostgreSQL SELECT and database fallback on miss/failure.
 
-**Independent Test**: Load known catalog data, call `GET /products` before and after cache warm-up, and validate `200`, `204`, cache hit/miss, expiration, degraded Redis fallback and OpenAPI coverage.
+**Independent Test**: Load known catalog data, call `GET /products` before and after cache warm-up, and validate `200`, `204`, direct Redis hit without PostgreSQL SELECT, cache miss/expiration, degraded Redis fallback and OpenAPI coverage.
 
 ### Tests for User Story 1
 
 > Write these tests FIRST and confirm each fails for the expected reason.
 
 - [X] T037 [P] [US1] Write failing contract tests for GET /products 200, 204 without body, 503 error envelope and request/correlation headers in tests/contract/products.test.ts
-- [X] T038 [P] [US1] Write failing unit tests for catalog cache hit, miss, expired entry, invalid payload, version mismatch and 500ms database artificial delay decisions in tests/unit/catalog/catalog-cache.test.ts
-- [X] T039 [P] [US1] Write failing integration tests for Redis GET/SET/DEL failure, degraded mode, recovery reload, PostgreSQL fallback and 50% faster Redis hit with 500ms database artificial delay in tests/integration/catalog-cache.test.ts
+- [ ] T038 [P] [US1] Write failing unit tests for direct catalog cache hit without PostgreSQL version check, miss, expired entry, invalid payload and 500ms database artificial delay decisions in tests/unit/catalog/catalog-cache.test.ts
+- [ ] T039 [P] [US1] Write failing integration tests for Redis GET/SET failure, degraded mode, recovery without version reload, PostgreSQL fallback and 50% faster direct Redis hit with 500ms database artificial delay in tests/integration/catalog-cache.test.ts
 - [X] T040 [P] [US1] Write failing integration tests for concurrent cache expiration reads and single-flight refresh behavior in tests/integration/catalog-concurrency.test.ts
 - [X] T041 [P] [US1] Write failing OpenAPI snapshot test for /products and /metrics contract coverage in tests/contract/openapi-products.test.ts
 
@@ -90,8 +90,8 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 - [X] T042 [P] [US1] Define catalog ports for product repository, cache repository and metrics in src/modules/catalog/ports/catalog-ports.ts
 - [X] T043 [P] [US1] Implement catalog product mapping and money serialization rules in src/modules/catalog/domain/product.ts
-- [X] T044 [US1] Implement ListProductsUseCase with cache-aside, TTL, CatalogState version validation, 204 empty result, degraded Redis behavior and configurable 500ms artificial database delay for local cache validation in src/modules/catalog/application/list-products.ts
-- [X] T045 [US1] Implement Prisma catalog repository for products and CatalogState reads in src/adapters/database/catalog-repository.ts
+- [ ] T044 [US1] Implement ListProductsUseCase with cache-aside, TTL, direct Redis hit without CatalogState/PostgreSQL version validation, 204 empty result, degraded Redis behavior and configurable 500ms artificial database delay for local cache validation in src/modules/catalog/application/list-products.ts
+- [ ] T045 [US1] Implement Prisma catalog repository for product reads only, removing CatalogState reads from GET /products path in src/adapters/database/catalog-repository.ts
 - [X] T046 [US1] Implement Redis catalog cache adapter with key casecellshop:v1:products, TTL, payload validation and circuit breaker in src/adapters/cache/catalog-cache.ts
 - [X] T047 [US1] Implement catalog route with Zod request/response schema binding for GET /products in src/api/routes/products.ts
 - [X] T048 [US1] Register catalog route and API metrics endpoint in src/api/app.ts
@@ -127,7 +127,7 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T060 [US2] Implement Prisma reservation and outbox creation inside checkout transaction in src/adapters/database/checkout-repository.ts
 - [X] T061 [US2] Implement checkout route with Idempotency-Key header, Zod schema validation and error translation in src/api/routes/checkout.ts
 - [X] T062 [US2] Register checkout route in API builder in src/api/app.ts
-- [X] T063 [US2] Implement best-effort catalog invalidation after committed availability changes in src/modules/catalog/application/invalidate-catalog.ts
+- [ ] T063 [US2] Remove checkout/reservation-driven catalog invalidation from current scope and document that active invalidation belongs to future ERP-local synchronization in src/modules/catalog/application/invalidate-catalog.ts
 - [X] T064 [US2] Add checkout metrics for created, invalid, product not found, insufficient stock and accepted latency in src/observability/checkout-metrics.ts
 
 **Checkpoint**: User Story 2 is independently functional and testable.
@@ -204,6 +204,7 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T086 [P] [US5] Write failing integration tests for worker consumer duplicate delivery, terminal no-op and one attempt per order/attempt number in tests/integration/order-consumer-idempotency.test.ts
 - [X] T087 [P] [US5] Write failing e2e tests for confirmed, temporarily unavailable, unavailable, timeout, third retry failure and late ERP response in tests/e2e/erp-results.test.ts
 - [X] T088 [P] [US5] Write failing integration tests for reservation expiration sweeper and single stock restitution in tests/integration/reservation-expiration.test.ts
+- [ ] T122 [P] [US5] Write failing integration test proving reservation consume/release does not increment CatalogState/cache generation in tests/integration/processing-reservation-cache-generation.test.ts
 
 ### Implementation for User Story 5
 
@@ -213,7 +214,8 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T092 [US5] Implement order consumer claim flow that transitions pending/retrying to processing, creates ProcessingAttempt and guards attempt uniqueness in src/worker/order-consumer.ts
 - [X] T093 [US5] Implement ERP attempt completion transaction for confirmed, temporarily_unavailable, unavailable and timeout in src/modules/orders/application/finish-processing-attempt.ts
 - [X] T094 [US5] Implement retry scheduling by creating one new outbox event with availableAt after retryable ERP outcomes in src/adapters/database/processing-repository.ts
-- [X] T095 [US5] Implement reservation consume, release and catalog generation increment rules inside processing transactions in src/adapters/database/processing-repository.ts
+- [ ] T095 [US5] Implement reservation consume and release rules inside processing transactions in src/adapters/database/processing-repository.ts
+- [ ] T117 [US5] Remove catalog generation increment from reservation consume/release paths in src/adapters/database/processing-repository.ts
 - [X] T096 [US5] Implement recovery sweeper for abandoned processing attempts and late timeout application in src/worker/recovery-sweeper.ts
 - [X] T097 [US5] Implement reservation expirer with FOR UPDATE SKIP LOCKED, order failure and single stock restitution in src/worker/reservation-expirer.ts
 - [X] T098 [US5] Wire worker main loop for publisher, consumer, recovery sweeper, reservation expirer and graceful shutdown in src/worker/main.ts
@@ -244,6 +246,10 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T105 [US6] Implement worker child logger context with correlationId, orderId, attemptNumber and outbox event id in src/worker/order-consumer.ts
 - [X] T106 [US6] Implement API and worker metrics endpoints with prom-client registries in src/api/routes/metrics.ts and src/worker/metrics-server.ts
 - [X] T107 [US6] Implement no-op TracePort and document trace stub integration point in src/observability/trace.ts
+- [ ] T118 [P] [US6] Write failing contract test for Grafana provisioning files, Prometheus datasource and dashboard panels in tests/contract/grafana.test.ts
+- [ ] T119 [US6] Provision Grafana Prometheus datasource in observability/grafana/provisioning/datasources/prometheus.yml, dashboard provider in observability/grafana/provisioning/dashboards/dashboards.yml and dashboard JSON in observability/grafana/dashboards/casecellshop-overview.json covering cache, checkout, latency, worker, outbox, retries and failures
+- [ ] T120 [P] [US6] Write failing tests for no-op spans at request, cache, repository/outbox and worker boundaries in tests/unit/observability/trace.test.ts
+- [ ] T121 [US6] Connect TracePort no-op spans to HTTP request, catalog cache, checkout repository/outbox and worker processing flows
 
 **Checkpoint**: User Story 6 is independently functional and testable.
 
@@ -258,10 +264,10 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T110 [P] Add OpenAPI drift validation comparing generated documentation to specs/001-async-checkout-service/contracts/openapi.yaml in tests/contract/openapi-drift.test.ts
 - [X] T111 [P] Add worker contract drift validation for specs/001-async-checkout-service/contracts/worker-openapi.yaml and order-processing-message.schema.json in tests/contract/worker-contract-drift.test.ts
 - [X] T112 [P] Add quickstart smoke script covering catalog, checkout, idempotency replay, status, metrics and Docker Compose checks in scripts/quickstart-smoke.ps1
-- [X] T113 Run full local quality gate and fix only valid failures until npm run verify passes with zero warnings in package.json
-- [X] T114 Run Docker Compose validation and fix only valid failures until docker compose --profile test run --rm test npm run verify passes in docker-compose.yml
-- [X] T115 Review delivery-readiness checklist and mark satisfied items with evidence references in specs/001-async-checkout-service/checklists/delivery-readiness.md
-- [X] T116 Final consistency pass across spec.md, plan.md, tasks.md, README.md and PROMPTS.md without changing behavior to fit incorrect implementation in specs/001-async-checkout-service/tasks.md
+- [ ] T113 Run full local quality gate and fix only valid failures until npm run verify passes with zero warnings in package.json
+- [ ] T114 Run Docker Compose validation and fix only valid failures until docker compose --profile test run --rm test npm run verify passes in docker-compose.yml
+- [ ] T115 Review delivery-readiness checklist and mark satisfied items with evidence references in specs/001-async-checkout-service/checklists/delivery-readiness.md
+- [ ] T116 Final consistency pass across spec.md, plan.md, tasks.md, README.md and PROMPTS.md without changing behavior to fit incorrect implementation in specs/001-async-checkout-service/tasks.md
 
 ---
 
@@ -277,7 +283,7 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 ### User Story Dependencies
 
 - **US1 (P1)**: Can start after Foundational; MVP scope.
-- **US2 (P1)**: Can start after Foundational; uses shared database, catalog invalidation and API foundation.
+- **US2 (P1)**: Can start after Foundational; uses shared database and API foundation; catalog invalidation is outside current scope unless ERP-local sync is added.
 - **US3 (P1)**: Depends on US2 checkout acceptance path because it extends idempotency replay/conflict behavior.
 - **US4 (P1)**: Can start after Foundational; becomes more useful after US2 creates orders.
 - **US5 (P2)**: Depends on US2 because processing starts from checkout outbox records; uses US4 for status validation.
@@ -302,8 +308,8 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - US2 tests T050, T051, T052, T053, T054 and T055 can run in parallel before checkout implementation.
 - US3 tests T065, T066, T067, T068 and T069 can run in parallel before idempotency implementation.
 - US4 tests T074, T075 and T076 can run in parallel before status implementation.
-- US5 tests T082, T083, T084, T085, T086, T087 and T088 can run in parallel before worker implementation.
-- US6 tests T099, T100, T101 and T102 can run in parallel before observability wiring.
+- US5 tests T082, T083, T084, T085, T086, T087, T088 and T122 can run in parallel before worker implementation.
+- US6 tests T099, T100, T101, T102, T118 and T120 can run in parallel before observability wiring.
 - Polish tasks T108, T109, T110, T111 and T112 can run in parallel after the relevant behavior exists.
 
 ## Parallel Example: User Story 1

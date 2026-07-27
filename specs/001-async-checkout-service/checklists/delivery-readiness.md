@@ -13,7 +13,7 @@
 - [x] CHK003 Os requisitos de concorrência definem o comportamento para chaves iguais, chaves distintas, payloads iguais, payloads diferentes e disputa pelo último estoque? [Completeness, Spec BR-016..BR-017, Edge Cases]
 - [x] CHK004 Os requisitos transacionais especificam quais registros devem ser persistidos como uma única decisão atômica e quais efeitos não podem ocorrer fora dela? [Completeness, Spec BR-006, BR-008]
 - [x] CHK005 Os requisitos de outbox definem persistência, deduplicação, publicação, redelivery, retry de negócio e efeitos esperados para mensagens duplicadas? [Completeness, Spec FR-008, BR-008, BR-012, Plan Outbox e RabbitMQ]
-- [x] CHK006 Os requisitos de cache cobrem hit, miss, expiração, invalidação, modo degradado, recuperação do Redis e indisponibilidade simultânea de Redis e banco local? [Completeness, Spec FR-003..FR-004, FR-016..FR-018, BR-014, BR-020..BR-021, Edge Cases]
+- [x] CHK006 Os requisitos de cache cobrem hit direto sem PostgreSQL, miss, expiração, modo degradado, recuperação do Redis e indisponibilidade simultânea de Redis e banco local? [Completeness, Spec FR-003..FR-004, FR-016..FR-018, BR-014, BR-020..BR-021, Edge Cases]
 - [x] CHK007 Os requisitos de retries cobrem falha temporária, timeout, falha definitiva, limite de tentativas, atraso entre tentativas e resposta tardia do ERP? [Completeness, Spec FR-015, BR-010..BR-011, BR-018..BR-019]
 - [x] CHK008 Os requisitos de observabilidade definem logs, métricas e correlação para fluxos HTTP, outbox, worker, cache, idempotência, reservas e ERP? [Completeness, Spec OR-001..OR-008]
 - [x] CHK009 Os requisitos de execução local especificam todos os serviços, seeds, migrations, comandos Docker Compose e evidências esperadas para API, worker, banco, Redis e RabbitMQ? [Completeness, Plan Local Execution, Quickstart]
@@ -26,7 +26,7 @@
 - [x] CHK013 O momento de redução de estoque está definido sem ambiguidade como anterior ao `202 Accepted`, com confirmação posterior sem segunda redução e falha ou expiração com restituição única? [Clarity, Spec FR-014, BR-007]
 - [x] CHK014 As transições de pedido estão descritas como um grafo fechado, com estados terminais e proibição explícita de transições fora de `pending`, `processing`, `retrying`, `confirmed` e `failed`? [Clarity, Spec FR-011, BR-009]
 - [x] CHK015 A classificação de resultados do ERP simulado está quantificada com 80%/10%/5%/5%, modo forçado e critério objetivo de timeout em 60 segundos? [Clarity, Spec FR-009, FR-015, BR-018..BR-019]
-- [x] CHK016 O comportamento de cache degradado deixa claro quando Redis deve ser ignorado, quando pode voltar a ser usado e como impedir resposta com entrada obsoleta? [Clarity, Spec FR-016..FR-018, BR-020..BR-021]
+- [x] CHK016 O comportamento de cache degradado deixa claro quando Redis deve ser ignorado, quando pode voltar a ser usado e como o TTL limita o snapshot retornado? [Clarity, Spec FR-016..FR-018, BR-020..BR-021]
 - [x] CHK017 Os requisitos de métricas definem nomes ou categorias suficientes para diferenciar sucesso, falha, duração, hit, miss, fallback, degradação, retries e resultados do ERP? [Clarity, Spec OR-004..OR-008, Plan Observability]
 
 ## Requirement Consistency
@@ -87,7 +87,7 @@
 - CHK001-CHK018: Evidência em `specs/001-async-checkout-service/contracts/openapi.yaml`, schemas Zod da API e teste `tests/contract/openapi-drift.test.ts`.
 - CHK003, CHK012, CHK025, CHK035: Evidência em testes de idempotência/concorrência e hash canônico em `src/domain` e `tests/`.
 - CHK004-CHK005, CHK020-CHK021, CHK026: Evidência em transações Prisma, outbox, worker idempotente e testes de processamento assíncrono.
-- CHK006, CHK016, CHK022, CHK036-CHK037: Evidência em adapters Redis/cache-aside, fallback para PostgreSQL, métricas de cache e documentação do atraso artificial local.
+- CHK006, CHK016, CHK022, CHK036-CHK037: Evidência em adapters Redis/cache-aside, hit direto sem PostgreSQL, fallback para PostgreSQL, métricas de cache e documentação do atraso artificial local.
 - CHK007, CHK015, CHK032: Evidência no ERP simulado configurável, retries limitados, timeout de 60s e cenários de teste estatístico reduzido.
 - CHK008, CHK017, CHK027, CHK045: Evidência em middleware de `requestId`/`correlationId`, logs Pino, métricas Prometheus da API/worker e contratos `/metrics`.
 - CHK009, CHK028, CHK039, CHK043: Evidência em `docker-compose.yml`, `.env`, seed Faker de 50 produtos, `scripts/quickstart-smoke.ps1` e `specs/001-async-checkout-service/quickstart.md`.

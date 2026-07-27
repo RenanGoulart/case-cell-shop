@@ -10,7 +10,7 @@ Backend modular em Node.js e TypeScript para demonstrar catálogo com cache, che
 - Prisma é usado para migrations, seed e acesso ao PostgreSQL.
 - Redis é usado somente como cache-aside do catálogo, com TTL e fallback para PostgreSQL.
 - RabbitMQ transporta eventos de processamento de pedido.
-- Docker Compose sobe PostgreSQL, Redis, RabbitMQ, migrations/seed, API, worker e profile de teste.
+- Docker Compose sobe PostgreSQL, Redis, RabbitMQ, migrations/seed, API, worker, Prometheus, Grafana e profile de teste.
 
 ## Decisões principais
 
@@ -30,8 +30,9 @@ Backend modular em Node.js e TypeScript para demonstrar catálogo com cache, che
 - A aplicação é modular, mas não usa microsserviços. API e worker ficam no mesmo repositório para reduzir complexidade do case.
 - Não há autenticação, pagamento, front-end, deploy remoto, ERP real ou sincronização entre ERP e banco local.
 - O banco local é a fonte autoritativa desta demonstração. A ausência de sincronização ERP-banco local é intencional e deve ser tratada como simplificação de escopo, não como comportamento de produção.
-- O Redis não é fonte de verdade. Se o Redis falhar, o catálogo consulta PostgreSQL e registra métricas de fallback/degradação.
-- O catálogo aplica atraso artificial configurável de `CATALOG_DB_ARTIFICIAL_DELAY_MS=500` no caminho PostgreSQL para imitar latência de produção em ambiente local. O hit de Redis não aplica esse atraso, tornando o ganho de cache observável.
+- O Redis não é fonte de verdade. Em cache hit válido, `GET /products` retorna diretamente o snapshot Redis sem consultar PostgreSQL; se o Redis falhar ou houver miss, o catálogo consulta PostgreSQL e registra métricas de fallback/degradação.
+- O catálogo aplica atraso artificial configurável de `CATALOG_DB_ARTIFICIAL_DELAY_MS=500` no caminho PostgreSQL para imitar latência de produção em ambiente local. O hit de Redis não aplica esse atraso nem valida versão no banco, tornando o ganho de cache observável.
+- O cache pode ficar até 60 segundos atrás do PostgreSQL. Isso é aceito para listagem; checkout continua protegido por update atômico no PostgreSQL. Invalidação ativa dependeria de sincronização ERP-banco local, fora do escopo.
 - O teste estatístico do ERP usa amostra reduzida para manter o feedback rápido; a distribuição alvo continua documentada em 80%/10%/5%/5%.
 - Tracing distribuído real é opcional; a rastreabilidade mínima usa `requestId`, `correlationId`, `orderId`, logs estruturados e métricas.
 
@@ -52,6 +53,8 @@ Endpoints principais:
 - `GET /orders/{orderId}/status`: retorna status atual do pedido.
 - `GET /metrics`: expõe métricas Prometheus da API.
 - Worker expõe métricas em `http://localhost:9091/metrics`.
+- Prometheus local coleta API/worker em `http://localhost:9090`.
+- Grafana local fica em `http://localhost:3001` com login `admin`/`casecellshop` e dashboard `CaseCellShop Overview`.
 
 ## Execução local
 
@@ -97,6 +100,41 @@ O serviço `migrate` executa `prisma migrate deploy` e `prisma db seed`. A seed 
 - Fluxos assíncronos preservam `correlationId` e registram `orderId` quando aplicável.
 - Métricas cobrem duração HTTP, cache hit/miss/fallback, publicações outbox, mensagens processadas, retries, falhas e resultados do ERP simulado.
 - O smoke script valida catálogo, checkout, replay idempotente, status e métricas da API/worker.
+
+### Grafana, alertas e runbook
+
+O Compose provisiona Prometheus e Grafana a partir de `observability/`. O dashboard `CaseCellShop Overview` mostra cache hit/miss, rejeições e aceite de checkout, p95 de latência do aceite, resultados do ERP, outbox, retries e falhas/fallbacks do Redis.
+
+Consultas úteis:
+
+```promql
+sum(rate(casecellshop_catalog_cache_hits_total[5m]))
+sum(rate(casecellshop_catalog_cache_misses_total[5m]))
+sum(rate(casecellshop_checkout_accepted_total[5m]))
+sum(rate(casecellshop_checkout_invalid_total[5m])) + sum(rate(casecellshop_checkout_product_not_found_total[5m])) + sum(rate(casecellshop_checkout_insufficient_stock_total[5m])) + sum(rate(casecellshop_checkout_idempotency_conflict_total[5m]))
+histogram_quantile(0.95, sum(rate(casecellshop_checkout_accept_duration_ms_bucket[5m])) by (le))
+sum(rate(casecellshop_worker_erp_outcomes_total[5m])) by (result)
+sum(rate(casecellshop_worker_retries_scheduled_total[5m]))
+sum(rate(casecellshop_catalog_redis_failures_total[5m])) by (operation)
+```
+
+Alertas exemplos para configurar no Grafana:
+
+```promql
+sum(rate(casecellshop_catalog_redis_failures_total[5m])) > 0
+sum(rate(casecellshop_worker_outbox_publish_failures_total[5m])) > 0
+histogram_quantile(0.95, sum(rate(casecellshop_checkout_accept_duration_ms_bucket[5m])) by (le)) > 1000
+```
+
+Runbook curto:
+
+1. Abra o dashboard no Grafana e identifique se a anomalia está em cache, checkout ou worker.
+2. Consulte `curl -s http://localhost:3000/metrics` e `curl -s http://localhost:9091/metrics` para confirmar a série bruta.
+3. Verifique logs com `docker compose logs api worker` e correlacione por `requestId`, `correlationId` e `orderId`.
+4. Para cache degradado, valide Redis com `docker compose ps redis` e force nova leitura de `GET /products`.
+5. Para processamento parado, valide RabbitMQ em `http://localhost:15672`, consulte status do pedido e verifique se a outbox volta a publicar após recuperação do broker.
+
+Trace distribuído real não é reivindicado nesta entrega; o projeto mantém apenas o ponto de extensão `TracePort` no-op e rastreabilidade por logs e métricas.
 
 ## Desenvolvimento
 

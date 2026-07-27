@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: CaseCellShop
+    orgId: 1
+    folder: CaseCellShop
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

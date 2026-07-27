@@ -1,0 +1,158 @@
+{
+  "uid": "casecellshop-overview",
+  "title": "CaseCellShop Overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "tags": ["casecellshop", "checkout", "cache", "worker"],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Catalog Cache Hits",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(casecellshop_catalog_cache_hits_total[5m]))",
+          "legendFormat": "hits/s"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Catalog Cache Misses",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(casecellshop_catalog_cache_misses_total[5m]))",
+          "legendFormat": "misses/s"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Checkout Accepted",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(casecellshop_checkout_accepted_total[5m]))",
+          "legendFormat": "accepted/s"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Checkout Rejections",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(casecellshop_checkout_invalid_total[5m])) + sum(rate(casecellshop_checkout_product_not_found_total[5m])) + sum(rate(casecellshop_checkout_insufficient_stock_total[5m])) + sum(rate(casecellshop_checkout_idempotency_conflict_total[5m]))",
+          "legendFormat": "rejections/s"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Checkout Acceptance Latency p95",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(casecellshop_checkout_accept_duration_ms_bucket[5m])) by (le))",
+          "legendFormat": "p95 ms"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Worker ERP Outcomes",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(casecellshop_worker_erp_outcomes_total[5m])) by (result)",
+          "legendFormat": "{{result}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Outbox and Retries",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(casecellshop_worker_outbox_published_total[5m]))",
+          "legendFormat": "outbox published/s"
+        },
+        {
+          "expr": "sum(rate(casecellshop_worker_retries_scheduled_total[5m]))",
+          "legendFormat": "retries/s"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Redis Failures and Fallbacks",
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(casecellshop_catalog_redis_failures_total[5m])) by (operation)",
+          "legendFormat": "redis {{operation}} failures/s"
+        },
+        {
+          "expr": "sum(rate(casecellshop_catalog_database_fallbacks_total[5m]))",
+          "legendFormat": "database fallbacks/s"
+        }
+      ]
+    }
+  ]
+}

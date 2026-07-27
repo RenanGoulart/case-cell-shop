@@ -55,8 +55,8 @@
 - **Command**: `$speckit-clarify`
 - **Purpose**: Definir expiração, invalidação e fallback do catálogo quando o Redis falhar.
 - **Prompt summary**: Tratar o Redis como cache não autoritativo; durante falhas, ignorá-lo e
-  consultar o banco local sem bloquear catálogo ou checkout; antes de reabilitar o cache após a
-  recuperação, invalidar ou recarregar entradas potencialmente obsoletas.
+  consultar o banco local sem bloquear catálogo ou checkout; a revisão posterior do plano removeu a
+  validação por versão em hit e manteve o TTL de 60 segundos como limite de validade.
 - **Result**: Cenários, requisitos, regras, contrato, observabilidade, entidade e critérios de
   sucesso atualizados em `specs/001-async-checkout-service/spec.md`.
 
@@ -78,7 +78,7 @@
   `@faker-js/faker` para 50 produtos, preservando conteúdos compatíveis.
 - **Result**: Atualizados `plan.md`, `research.md`, `data-model.md`, `test-scenarios.md` e
   `quickstart.md` com geração determinística, execução explícita pelo Prisma, persistência
-  não destrutiva, invalidação coerente do cache e testes do seed. Contratos públicos preservados.
+  não destrutiva, TTL de cache como renovação da listagem e testes do seed. Contratos públicos preservados.
 
 ## 2026-07-27 — Revisão do plano: ESLint obrigatório
 
@@ -109,3 +109,9 @@
 - **Purpose**: Implementar a feature por fases, permitindo validação manual do usuário entre etapas.
 - **Prompt summary**: Executar o próximo bloco pendente de `tasks.md`, mantendo contratos, testes, documentação, Docker Compose, Zod, ESLint e UTF-8 consistentes.
 - **Result**: Implementação incremental da API, worker, persistência, cache, idempotência, outbox, métricas, contratos de drift, smoke script e documentação de entrega.
+## 2026-07-27 — Revisão do plano: cache direto por TTL
+
+- **Command**: `$speckit-plan`
+- **Purpose**: Remover do plano a validação de versão no PostgreSQL em todo `GET /products` com cache válido.
+- **Prompt summary**: Manter Redis cache-aside com TTL de 60 segundos; em hit retornar diretamente o cache sem `SELECT` no PostgreSQL; em miss/expiração/falha consultar PostgreSQL e renovar cache; documentar que invalidação ativa dependeria de sincronização ERP-banco local, fora do escopo.
+- **Result**: Atualizados `spec.md`, `plan.md`, `research.md`, `data-model.md`, `test-scenarios.md`, `quickstart.md`, checklist e README para refletir a decisão de cache direto por TTL.

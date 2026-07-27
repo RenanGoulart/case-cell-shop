@@ -8,6 +8,7 @@ import {
 } from "../schemas/http.js";
 import { AppError, toErrorEnvelope } from "../../shared/errors.js";
 import type { AcceptedCheckoutSnapshot } from "../../modules/orders/domain/checkout.js";
+import type { CheckoutMetrics } from "../../observability/checkout-metrics.js";
 
 export interface CheckoutCommand {
   readonly idempotencyKey: string;
@@ -22,6 +23,10 @@ export interface CheckoutAcceptor {
 
 export interface CheckoutRouteDependencies {
   readonly acceptCheckout: CheckoutAcceptor;
+  readonly metrics?: Pick<
+    CheckoutMetrics,
+    "recordAccepted" | "recordInvalid" | "recordProductNotFound" | "recordInsufficientStock"
+  >;
 }
 
 export const checkoutRouteSchema = {
@@ -50,6 +55,8 @@ export function createCheckoutHandler(dependencies: CheckoutRouteDependencies) {
         correlationId,
       });
 
+      dependencies.metrics?.recordAccepted(performance.now() - started);
+      request.log.info({ orderId: result.orderId, status: result.status }, "checkout accepted");
       reply.status(202);
       return result;
     } catch (error) {
@@ -60,10 +67,27 @@ export function createCheckoutHandler(dependencies: CheckoutRouteDependencies) {
           ? error
           : new AppError("INTERNAL_ERROR", "Unexpected checkout error", 500);
 
+      recordCheckoutFailure(dependencies, appError);
       reply.status(appError.httpStatus);
       return toErrorEnvelope(appError, request.id);
     }
   };
+}
+
+function recordCheckoutFailure(dependencies: CheckoutRouteDependencies, error: AppError): void {
+  if (error.code === "INVALID_REQUEST") {
+    dependencies.metrics?.recordInvalid();
+    return;
+  }
+
+  if (error.code === "PRODUCT_NOT_FOUND") {
+    dependencies.metrics?.recordProductNotFound();
+    return;
+  }
+
+  if (error.code === "INSUFFICIENT_STOCK") {
+    dependencies.metrics?.recordInsufficientStock();
+  }
 }
 
 function getRequiredHeader(request: FastifyRequest, name: string): string {

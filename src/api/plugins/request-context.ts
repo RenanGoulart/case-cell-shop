@@ -11,6 +11,9 @@ export function requestContextHook(
       ? correlationHeader
       : crypto.randomUUID();
 
+  const contextualRequest = request as FastifyRequest & { log: FastifyRequest["log"] };
+  contextualRequest.log = request.log.child({ requestId: request.id, correlationId });
+
   reply.header("x-request-id", request.id);
   reply.header("x-correlation-id", correlationId);
   done();
