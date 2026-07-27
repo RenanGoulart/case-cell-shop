@@ -1,14 +1,15 @@
 services:
   postgres:
     image: postgres:18
+    env_file: .env
     environment:
-      POSTGRES_DB: casecellshop
-      POSTGRES_USER: casecellshop
-      POSTGRES_PASSWORD: casecellshop
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U casecellshop -d casecellshop"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -16,7 +17,7 @@ services:
   redis:
     image: redis:8
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -25,12 +26,13 @@ services:
 
   rabbitmq:
     image: rabbitmq:4.2-management
+    env_file: .env
     environment:
-      RABBITMQ_DEFAULT_USER: casecellshop
-      RABBITMQ_DEFAULT_PASS: casecellshop
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -40,7 +42,7 @@ services:
   migrate:
     build: .
     command: sh -c "npm run prisma:migrate && npm run prisma:seed"
-    env_file: .env.example
+    env_file: .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,9 +50,9 @@ services:
   api:
     build: .
     command: npm run start:api
-    env_file: .env.example
+    env_file: .env
     ports:
-      - "3000:3000"
+      - "${API_PORT}:3000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -62,9 +64,9 @@ services:
   worker:
     build: .
     command: npm run start:worker
-    env_file: .env.example
+    env_file: .env
     ports:
-      - "9091:9091"
+      - "${WORKER_METRICS_PORT}:9091"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -77,7 +79,7 @@ services:
     build: .
     profiles: ["test"]
     command: npm run verify
-    env_file: .env.example
+    env_file: .env
     depends_on:
       postgres:
         condition: service_healthy
