@@ -1,0 +1,354 @@
+openapi: 3.0.3
+info:
+  title: CaseCellShop Backend API
+  version: 1.0.0
+  description: >-
+    Catálogo local e checkout assíncrono. O PostgreSQL é a fonte autoritativa; não existe
+    sincronização com ERP real.
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: Catalog
+  - name: Checkout
+  - name: Orders
+  - name: Operations
+paths:
+  /products:
+    get:
+      operationId: listProducts
+      tags: [Catalog]
+      summary: Lista produtos e disponibilidade atual
+      parameters:
+        - $ref: '#/components/parameters/XCorrelationId'
+      responses:
+        '200':
+          description: Catálogo não vazio
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+            x-correlation-id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 1
+                items:
+                  $ref: '#/components/schemas/Product'
+        '204':
+          description: Catálogo vazio; a resposta não possui corpo
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+            x-correlation-id:
+              $ref: '#/components/headers/XCorrelationId'
+        '503':
+          description: PostgreSQL indisponível e nenhuma entrada válida do cache está acessível
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+            x-correlation-id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                unavailable:
+                  value:
+                    code: CATALOG_UNAVAILABLE
+                    message: Catalog is temporarily unavailable
+                    requestId: 2f814e57-d74d-4493-b50f-d85fc953c23e
+  /checkout:
+    post:
+      operationId: createCheckout
+      tags: [Checkout]
+      summary: Aceita um checkout para processamento assíncrono
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XCorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+            example:
+              items:
+                - productId: 74ca8480-8218-4f25-8f4f-356e23b04839
+                  quantity: 2
+      responses:
+        '202':
+          description: Pedido aceito ou replay idempotente do pedido já associado à chave
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+            x-correlation-id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutAccepted'
+              example:
+                orderId: ee4179a6-3a22-4614-bac6-f54448f89431
+                status: pending
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          description: Pelo menos um produto não existe
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+            x-correlation-id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                productNotFound:
+                  value:
+                    code: PRODUCT_NOT_FOUND
+                    message: One or more products were not found
+                    requestId: 2f814e57-d74d-4493-b50f-d85fc953c23e
+                    details:
+                      productIds: [74ca8480-8218-4f25-8f4f-356e23b04839]
+        '409':
+          description: Estoque insuficiente ou chave reutilizada com outro payload
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+            x-correlation-id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficientStock:
+                  value:
+                    code: INSUFFICIENT_STOCK
+                    message: Insufficient stock for one or more products
+                    requestId: 2f814e57-d74d-4493-b50f-d85fc953c23e
+                idempotencyConflict:
+                  value:
+                    code: IDEMPOTENCY_CONFLICT
+                    message: Idempotency key is already associated with another payload
+                    requestId: 2f814e57-d74d-4493-b50f-d85fc953c23e
+  /orders/{orderId}/status:
+    get:
+      operationId: getOrderStatus
+      tags: [Orders]
+      summary: Consulta o estado atual do pedido
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+        - $ref: '#/components/parameters/XCorrelationId'
+      responses:
+        '200':
+          description: Estado atual
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+            x-correlation-id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderStatus'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          description: Pedido inexistente
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+            x-correlation-id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: ORDER_NOT_FOUND
+                message: Order was not found
+                requestId: 2f814e57-d74d-4493-b50f-d85fc953c23e
+  /metrics:
+    get:
+      operationId: getApiMetrics
+      tags: [Operations]
+      summary: Expõe métricas Prometheus do processo da API
+      parameters:
+        - $ref: '#/components/parameters/XCorrelationId'
+      responses:
+        '200':
+          description: Prometheus text exposition format
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+            x-correlation-id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Chave opaca comparada exatamente e retida por 24 horas
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+    XCorrelationId:
+      name: x-correlation-id
+      in: header
+      required: false
+      description: UUID opcional do fluxo; valor ausente ou inválido é substituído pelo serviço
+      schema:
+        type: string
+        format: uuid
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  headers:
+    XRequestId:
+      required: true
+      description: Identificador UUID da requisição HTTP
+      schema:
+        type: string
+        format: uuid
+    XCorrelationId:
+      required: true
+      description: Identificador UUID propagado pelo fluxo
+      schema:
+        type: string
+        format: uuid
+  responses:
+    InvalidRequest:
+      description: Header, corpo, produto repetido ou quantidade inválida
+      headers:
+        x-request-id:
+          $ref: '#/components/headers/XRequestId'
+        x-correlation-id:
+          $ref: '#/components/headers/XCorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: INVALID_REQUEST
+            message: Request validation failed
+            requestId: 2f814e57-d74d-4493-b50f-d85fc953c23e
+            details:
+              fields: [items]
+  schemas:
+    Product:
+      type: object
+      additionalProperties: false
+      required: [id, name, price, currency, availableQuantity]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        price:
+          type: string
+          pattern: '^\d{1,10}\.\d{2}$'
+          description: Valor decimal exato serializado como string
+          example: '1999.90'
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          example: BRL
+        availableQuantity:
+          type: integer
+          format: int32
+          minimum: 0
+    CheckoutRequest:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          description: Cada productId pode aparecer no máximo uma vez
+          items:
+            $ref: '#/components/schemas/CheckoutItem'
+    CheckoutItem:
+      type: object
+      additionalProperties: false
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+    CheckoutAccepted:
+      type: object
+      additionalProperties: false
+      required: [orderId, status]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/OrderStatusValue'
+    OrderStatus:
+      type: object
+      additionalProperties: false
+      required: [orderId, status, updatedAt]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/OrderStatusValue'
+        updatedAt:
+          type: string
+          format: date-time
+        error:
+          allOf:
+            - $ref: '#/components/schemas/FinalOrderError'
+          nullable: true
+    OrderStatusValue:
+      type: string
+      enum: [pending, processing, retrying, confirmed, failed]
+    FinalOrderError:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [ERP_UNAVAILABLE, ERP_RETRIES_EXHAUSTED, RESERVATION_EXPIRED]
+        message:
+          type: string
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message, requestId]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string
+          format: uuid
+        details:
+          type: object
+          additionalProperties: true

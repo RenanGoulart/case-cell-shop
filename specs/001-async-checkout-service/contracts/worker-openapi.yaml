@@ -1,0 +1,46 @@
+openapi: 3.0.3
+info:
+  title: CaseCellShop Worker Operations API
+  version: 1.0.0
+  description: Interface operacional local do processo worker; não é uma API de negócio.
+servers:
+  - url: http://localhost:9091
+paths:
+  /metrics:
+    get:
+      operationId: getWorkerMetrics
+      summary: Expõe métricas Prometheus do worker
+      parameters:
+        - $ref: '#/components/parameters/XCorrelationId'
+      responses:
+        '200':
+          description: Prometheus text exposition format
+          headers:
+            x-request-id:
+              $ref: '#/components/headers/XRequestId'
+            x-correlation-id:
+              $ref: '#/components/headers/XCorrelationId'
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  parameters:
+    XCorrelationId:
+      name: x-correlation-id
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+  headers:
+    XRequestId:
+      required: true
+      schema:
+        type: string
+        format: uuid
+    XCorrelationId:
+      required: true
+      schema:
+        type: string
+        format: uuid

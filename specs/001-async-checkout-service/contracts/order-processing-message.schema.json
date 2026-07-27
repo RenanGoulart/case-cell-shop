@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casecellshop.local/schemas/order-processing-message.schema.json",
+  "title": "OrderProcessingRequested",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "messageVersion",
+    "eventId",
+    "type",
+    "orderId",
+    "attempt",
+    "requestId",
+    "correlationId",
+    "occurredAt"
+  ],
+  "properties": {
+    "messageVersion": {
+      "const": 1
+    },
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "type": {
+      "const": "order.processing.requested"
+    },
+    "orderId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "requestId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
