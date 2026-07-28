@@ -42,6 +42,7 @@ services:
   migrate:
     build:
       context: .
+      target: migrate
       args:
         DATABASE_URL: ${DATABASE_URL}
     command: sh -c "npm run prisma:migrate && npm run prisma:seed"
@@ -53,6 +54,7 @@ services:
   api:
     build:
       context: .
+      target: runtime
       args:
         DATABASE_URL: ${DATABASE_URL}
     command: npm run start:api
@@ -70,6 +72,7 @@ services:
   worker:
     build:
       context: .
+      target: runtime
       args:
         DATABASE_URL: ${DATABASE_URL}
     command: npm run start:worker
@@ -118,6 +121,7 @@ services:
   test:
     build:
       context: .
+      target: test
       args:
         DATABASE_URL: ${DATABASE_URL}
     profiles: ["test"]

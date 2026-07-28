@@ -7,32 +7,41 @@ WORKDIR /app
 ARG DATABASE_URL
 ENV DATABASE_URL=${DATABASE_URL}
 
+FROM base AS deps
+
 COPY package*.json ./
 RUN npm ci
+
+FROM deps AS build
 
 COPY . .
 RUN npm run build
 
-FROM node:24-bookworm-slim AS runtime
+FROM base AS prod-deps
 
-RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+ENV NODE_ENV=production
 
-WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev --omit=optional
 
-COPY --from=base /app/package*.json ./
-COPY --from=base /app/node_modules ./node_modules
-COPY --from=base /app/dist ./dist
-COPY --from=base /app/src ./src
-COPY --from=base /app/prisma ./prisma
-COPY --from=base /app/prisma.config.ts ./prisma.config.ts
-COPY --from=base /app/eslint.config.mjs ./eslint.config.mjs
-COPY --from=base /app/.prettierrc.json ./.prettierrc.json
-COPY --from=base /app/tsconfig.json ./tsconfig.json
-COPY --from=base /app/vitest.config.ts ./vitest.config.ts
-COPY --from=base /app/docker-compose.yml ./docker-compose.yml
-COPY --from=base /app/tests ./tests
-COPY --from=base /app/specs ./specs
+FROM base AS runtime
+
+ENV NODE_ENV=production
+
+COPY --from=prod-deps /app/package*.json ./
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/prisma/schema.prisma ./prisma/schema.prisma
+COPY --from=build /app/prisma/migrations ./prisma/migrations
 
 EXPOSE 3000 9091
 
 CMD ["node", "dist/src/api/main.js"]
+
+FROM build AS migrate
+
+CMD ["sh", "-c", "npm run prisma:migrate && npm run prisma:seed"]
+
+FROM build AS test
+
+CMD ["npm", "run", "verify"]
