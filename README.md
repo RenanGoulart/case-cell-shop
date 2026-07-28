@@ -1,50 +1,50 @@
-﻿# CaseCellShop Backend
+# CaseCellShop Backend
 
-Backend modular em Node.js e TypeScript para demonstrar catÃ¡logo com cache, checkout assÃ­ncrono, idempotÃªncia, controle de estoque por atualizaÃ§Ã£o atÃ´mica, outbox transacional, worker com retry e observabilidade bÃ¡sica.
+Backend modular em Node.js e TypeScript para demonstrar catálogo com cache, checkout assíncrono, idempotência, controle de estoque por atualização atômica, outbox transacional, worker com retry e observabilidade básica.
 
 ## Arquitetura
 
-- API HTTP Fastify em `src/api`, com validaÃ§Ã£o Zod, Swagger/OpenAPI e logs Pino em JSON.
-- Worker em processo separado em `src/worker`, responsÃ¡vel por publicar outbox, consumir mensagens, simular ERP, aplicar retries e expirar reservas.
-- PostgreSQL Ã© a fonte autoritativa local para catÃ¡logo, estoque, pedidos, idempotÃªncia, reservas e outbox.
-- Prisma Ã© usado para migrations, seed e acesso ao PostgreSQL.
-- Redis Ã© usado somente como cache-aside do catÃ¡logo, com TTL e fallback para PostgreSQL.
+- API HTTP Fastify em `src/api`, com validação Zod, Swagger/OpenAPI e logs Pino em JSON.
+- Worker em processo separado em `src/worker`, responsável por publicar outbox, consumir mensagens, simular ERP, aplicar retries e expirar reservas.
+- PostgreSQL é a fonte autoritativa local para catálogo, estoque, pedidos, idempotência, reservas e outbox.
+- Prisma é usado para migrations, seed e acesso ao PostgreSQL.
+- Redis é usado somente como cache-aside do catálogo, com TTL e fallback para PostgreSQL.
 - RabbitMQ transporta eventos de processamento de pedido.
 - Docker Compose sobe PostgreSQL, Redis, RabbitMQ, migrations/seed, API, worker, Prometheus, Grafana e profile de teste.
 
-## DecisÃµes principais
+## Decisões principais
 
-- O checkout reduz estoque no aceite da requisiÃ§Ã£o, antes do `202 Accepted`, usando atualizaÃ§Ã£o condicional atÃ´mica no PostgreSQL para impedir overselling.
-- A confirmaÃ§Ã£o pelo ERP nÃ£o reduz estoque novamente. Falha definitiva, expiraÃ§Ã£o ou abandono restituem a reserva uma Ãºnica vez.
-- A idempotÃªncia usa `Idempotency-Key` com hash de payload canÃ´nico. O payload Ã© ordenado antes da comparaÃ§Ã£o para evitar falso conflito por ordem de campos ou itens.
+- O checkout reduz estoque no aceite da requisição, antes do `202 Accepted`, usando atualização condicional atômica no PostgreSQL para impedir overselling.
+- A confirmação pelo ERP não reduz estoque novamente. Falha definitiva, expiração ou abandono restituem a reserva uma única vez.
+- A idempotência usa `Idempotency-Key` com hash de payload canônico. O payload é ordenado antes da comparação para evitar falso conflito por ordem de campos ou itens.
 - A mesma chave com mesmo payload retorna o mesmo pedido. A mesma chave com payload diferente retorna `409 Conflict`.
-- Pedido e evento de outbox sÃ£o persistidos na mesma transaÃ§Ã£o.
-- O consumidor Ã© idempotente pelo estado do pedido e ignora mensagens duplicadas sem repetir efeito final.
-- O ERP Ã© simulado e configurÃ¡vel: por padrÃ£o, cada tentativa tem 80% de confirmaÃ§Ã£o, 10% de indisponibilidade temporÃ¡ria, 5% de indisponibilidade total e 5% de timeout.
-- Zod valida variÃ¡veis de ambiente na inicializaÃ§Ã£o. VariÃ¡vel obrigatÃ³ria ausente ou invÃ¡lida faz API/worker falhar imediatamente com erro descritivo.
-- Zod tambÃ©m valida schemas de entrada da API e Ã© reutilizado na documentaÃ§Ã£o OpenAPI sempre que possÃ­vel.
-- ESLint, Prettier, typecheck e testes compÃµem o gate obrigatÃ³rio via `npm run verify`.
+- Pedido e evento de outbox são persistidos na mesma transação.
+- O consumidor é idempotente pelo estado do pedido e ignora mensagens duplicadas sem repetir efeito final.
+- O ERP é simulado e configurável: por padrão, cada tentativa tem 80% de confirmação, 10% de indisponibilidade temporária, 5% de indisponibilidade total e 5% de timeout.
+- Zod valida variáveis de ambiente na inicialização. Variável obrigatória ausente ou inválida faz API/worker falhar imediatamente com erro descritivo.
+- Zod também valida schemas de entrada da API e é reutilizado na documentação OpenAPI sempre que possível.
+- ESLint, Prettier, typecheck e testes compõem o gate obrigatório via `npm run verify`.
 
-## Trade-offs e simplificaÃ§Ãµes
+## Trade-offs e simplificações
 
-- A aplicaÃ§Ã£o Ã© modular, mas nÃ£o usa microsserviÃ§os. API e worker ficam no mesmo repositÃ³rio para reduzir complexidade do case.
-- NÃ£o hÃ¡ autenticaÃ§Ã£o, pagamento, front-end, deploy remoto, ERP real ou sincronizaÃ§Ã£o entre ERP e banco local.
-- O banco local Ã© a fonte autoritativa desta demonstraÃ§Ã£o. A ausÃªncia de sincronizaÃ§Ã£o ERP-banco local Ã© intencional e deve ser tratada como simplificaÃ§Ã£o de escopo, nÃ£o como comportamento de produÃ§Ã£o.
-- O Redis nÃ£o Ã© fonte de verdade. Em cache hit vÃ¡lido, `GET /products` retorna diretamente o snapshot Redis sem consultar PostgreSQL; se o Redis falhar ou houver miss, o catÃ¡logo consulta PostgreSQL e registra mÃ©tricas de fallback/degradaÃ§Ã£o.
-- O catÃ¡logo aplica atraso artificial configurÃ¡vel de `CATALOG_DB_ARTIFICIAL_DELAY_MS=500` no caminho PostgreSQL para imitar latÃªncia de produÃ§Ã£o em ambiente local. O hit de Redis nÃ£o aplica esse atraso nem valida versÃ£o no banco, tornando o ganho de cache observÃ¡vel.
-- O cache pode ficar atÃ© 60 segundos atrÃ¡s do PostgreSQL. Isso Ã© aceito para listagem; checkout continua protegido por update atÃ´mico no PostgreSQL. InvalidaÃ§Ã£o ativa dependeria de sincronizaÃ§Ã£o ERP-banco local, fora do escopo.
-- O teste estatÃ­stico do ERP usa amostra reduzida para manter o feedback rÃ¡pido; a distribuiÃ§Ã£o alvo continua documentada em 80%/10%/5%/5%.
-- Tracing distribuÃ­do real Ã© opcional; a rastreabilidade mÃ­nima usa `requestId`, `correlationId`, `orderId`, logs estruturados e mÃ©tricas.
+- A aplicação é modular, mas não usa microsserviços. API e worker ficam no mesmo repositório para reduzir complexidade do case.
+- Não há autenticação, pagamento, front-end, deploy remoto, ERP real ou sincronização entre ERP e banco local.
+- O banco local é a fonte autoritativa desta demonstração. A ausência de sincronização ERP-banco local é intencional e deve ser tratada como simplificação de escopo, não como comportamento de produção.
+- O Redis não é fonte de verdade. Em cache hit válido, `GET /products` retorna diretamente o snapshot Redis sem consultar PostgreSQL; se o Redis falhar ou houver miss, o catálogo consulta PostgreSQL e registra métricas de fallback/degradação.
+- O catálogo aplica atraso artificial configurável de `CATALOG_DB_ARTIFICIAL_DELAY_MS=500` no caminho PostgreSQL para imitar latência de produção em ambiente local. O hit de Redis não aplica esse atraso nem valida versão no banco, tornando o ganho de cache observável.
+- O cache pode ficar até 60 segundos atrás do PostgreSQL. Isso é aceito para listagem; checkout continua protegido por update atômico no PostgreSQL. Invalidação ativa dependeria de sincronização ERP-banco local, fora do escopo.
+- O teste estatístico do ERP usa amostra reduzida para manter o feedback rápido; a distribuição alvo continua documentada em 80%/10%/5%/5%.
+- Tracing distribuído real é opcional; a rastreabilidade mínima usa `requestId`, `correlationId`, `orderId`, logs estruturados e métricas.
 
 ## Contrato HTTP
 
-A documentaÃ§Ã£o Swagger/OpenAPI fica disponÃ­vel em:
+A documentação Swagger/OpenAPI fica disponível em:
 
 ```bash
 http://localhost:3000/documentation
 ```
 
-Contratos estÃ¡ticos ficam em `specs/001-async-checkout-service/contracts/` e hÃ¡ testes de drift para comparar caminhos/cÃ³digos principais com o contrato gerado.
+Contratos estáticos ficam em `specs/001-async-checkout-service/contracts/` e há testes de drift para comparar caminhos/códigos principais com o contrato gerado.
 
 Artefatos para teste manual e entendimento do fluxo:
 
@@ -55,84 +55,50 @@ Artefatos para teste manual e entendimento do fluxo:
 
 Endpoints principais:
 
-- `GET /products`: retorna `200` com produtos ou `204 No Content` quando nÃ£o houver conteÃºdo.
+- `GET /products`: retorna `200` com produtos ou `204 No Content` quando não houver conteúdo.
 - `POST /checkout`: retorna `202 Accepted` com `orderId` e status inicial; exige `Idempotency-Key`.
 - `GET /orders/{orderId}/status`: retorna status atual do pedido.
-- `GET /metrics`: expÃµe mÃ©tricas Prometheus da API.
-- Worker expÃµe mÃ©tricas em `http://localhost:9091/metrics`.
+- `GET /metrics`: expõe métricas Prometheus da API.
+- Worker expõe métricas em `http://localhost:9091/metrics`.
 - Prometheus local coleta API/worker em `http://localhost:9090`.
 - Grafana local fica em `http://localhost:3001` com login `admin`/`casecellshop` e dashboard `CaseCellShop Overview`.
 
-## ExecuÃ§Ã£o local
+## Execução local
 
-Crie ou revise `.env` com as variÃ¡veis locais. As variÃ¡veis devem ficar somente em arquivos `.env*`; nÃ£o hÃ¡ env hardcoded na aplicaÃ§Ã£o.
+Pré-requisitos: Node.js/npm e Docker com Docker Compose.
 
-macOS/Linux:
-
-```bash
-cp .env.example .env
-npm ci
-npm run prisma:generate
-docker compose up --build --wait
-docker compose ps
-```
-
-Smoke manual em macOS/Linux:
+Use o mesmo comando em Windows, macOS e Linux para subir toda a stack local:
 
 ```bash
-curl -i http://localhost:3000/health
-curl -i http://localhost:3000/products
-
-ORDER_ID=$(curl -s -X POST http://localhost:3000/checkout \
-  -H 'content-type: application/json' \
-  -H "idempotency-key: manual-$(date +%s)" \
-  -d '{"items":[{"productId":"case-product-001","quantity":1}]}' \
-  | node -e "let data=''; process.stdin.on('data', chunk => data += chunk); process.stdin.on('end', () => console.log(JSON.parse(data).orderId));")
-
-curl -i "http://localhost:3000/orders/${ORDER_ID}/status"
-curl -s http://localhost:3000/metrics | grep 'casecellshop_'
-curl -s http://localhost:9091/metrics | grep 'casecellshop_worker_'
+npm run start:stack
 ```
 
-Windows/PowerShell:
+Esse comando cria `.env` a partir de `.env.example` quando `.env` ainda não existe e executa `docker compose up --build --wait`. Ao finalizar, a aplicação fica disponível para uso manual com PostgreSQL, Redis, RabbitMQ, migrations/seed, API, worker, Prometheus e Grafana.
 
-```powershell
-Copy-Item .env.example .env
-npm ci
-npm run prisma:generate
-docker compose up --build --wait
-docker compose ps
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quickstart-smoke.ps1
-```
+URLs principais após a subida:
 
-Executar gate local:
-
-```bash
-npm run verify
-```
-
-Executar gate dentro do Docker Compose:
-
-```bash
-docker compose --profile test run --rm test npm run verify
-```
+- API: `http://localhost:3000`
+- Swagger/OpenAPI: `http://localhost:3000/documentation`
+- Métricas do worker: `http://localhost:9091/metrics`
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3001`
 
 ## Seed local
 
-O serviÃ§o `migrate` executa `prisma migrate deploy` e `prisma db seed`. A seed usa `@faker-js/faker` com seed fixa e cria 50 produtos locais. ReexecuÃ§Ãµes sÃ£o nÃ£o destrutivas para produtos jÃ¡ existentes.
+O serviço `migrate` executa `prisma migrate deploy` e `prisma db seed`. A seed usa `@faker-js/faker` com seed fixa e cria 50 produtos locais. Reexecuções são não destrutivas para produtos já existentes.
 
 ## Observabilidade
 
 - Logs HTTP incluem `requestId` e `correlationId`.
-- Fluxos assÃ­ncronos preservam `correlationId` e registram `orderId` quando aplicÃ¡vel.
-- MÃ©tricas cobrem duraÃ§Ã£o HTTP, cache hit/miss/fallback, publicaÃ§Ãµes outbox, mensagens processadas, retries, falhas e resultados do ERP simulado.
-- O smoke script valida catÃ¡logo, checkout, replay idempotente, status e mÃ©tricas da API/worker.
+- Fluxos assíncronos preservam `correlationId` e registram `orderId` quando aplicável.
+- Métricas cobrem duração HTTP, cache hit/miss/fallback, publicações outbox, mensagens processadas, retries, falhas e resultados do ERP simulado.
+- O smoke script valida catálogo, checkout, replay idempotente, status e métricas da API/worker.
 
 ### Grafana, alertas e runbook
 
-O Compose provisiona Prometheus e Grafana a partir de `observability/`. O dashboard `CaseCellShop Overview` mostra cache hit/miss, rejeiÃ§Ãµes e aceite de checkout, p95 de latÃªncia do aceite, resultados do ERP, outbox, retries e falhas/fallbacks do Redis.
+O Compose provisiona Prometheus e Grafana a partir de `observability/`. O dashboard `CaseCellShop Overview` mostra cache hit/miss, rejeições e aceite de checkout, p95 de latência do aceite, resultados do ERP, outbox, retries e falhas/fallbacks do Redis.
 
-Consultas Ãºteis:
+Consultas úteis:
 
 ```promql
 sum(rate(casecellshop_catalog_cache_hits_total[5m]))
@@ -155,13 +121,13 @@ histogram_quantile(0.95, sum(rate(casecellshop_checkout_accept_duration_ms_bucke
 
 Runbook curto:
 
-1. Abra o dashboard no Grafana e identifique se a anomalia estÃ¡ em cache, checkout ou worker.
-2. Consulte `curl -s http://localhost:3000/metrics` e `curl -s http://localhost:9091/metrics` para confirmar a sÃ©rie bruta.
+1. Abra o dashboard no Grafana e identifique se a anomalia está em cache, checkout ou worker.
+2. Consulte `curl -s http://localhost:3000/metrics` e `curl -s http://localhost:9091/metrics` para confirmar a série bruta.
 3. Verifique logs com `docker compose logs api worker` e correlacione por `requestId`, `correlationId` e `orderId`.
 4. Para cache degradado, valide Redis com `docker compose ps redis` e force nova leitura de `GET /products`.
-5. Para processamento parado, valide RabbitMQ em `http://localhost:15672`, consulte status do pedido e verifique se a outbox volta a publicar apÃ³s recuperaÃ§Ã£o do broker.
+5. Para processamento parado, valide RabbitMQ em `http://localhost:15672`, consulte status do pedido e verifique se a outbox volta a publicar após recuperação do broker.
 
-Trace distribuÃ­do real nÃ£o Ã© reivindicado nesta entrega; o projeto mantÃ©m o `TracePort` no-op como stub justificÃ¡vel, conectado aos limites de request HTTP, cache, repositÃ³rio/outbox e worker, alÃ©m da rastreabilidade por logs e mÃ©tricas.
+Trace distribuído real não é reivindicado nesta entrega; o projeto mantém o `TracePort` no-op como stub justificável, conectado aos limites de request HTTP, cache, repositório/outbox e worker, além da rastreabilidade por logs e métricas.
 
 ## Desenvolvimento
 
@@ -173,8 +139,10 @@ npm run prisma:generate
 npm run verify
 ```
 
-Qualquer alteraÃ§Ã£o de cÃ³digo deve passar em lint, formataÃ§Ã£o, typecheck e testes antes de ser considerada aprovada.
+Qualquer alteração de código deve passar em lint, formatação, typecheck e testes antes de ser considerada aprovada.
 
 ## Uso de IA
 
-Prompts relevantes e decisÃµes assistidas por IA sÃ£o registrados em [PROMPTS.md](./PROMPTS.md). Todo cÃ³digo e documentaÃ§Ã£o gerados com apoio de IA devem ser revisados contra especificaÃ§Ã£o, plano, testes, escopo e complexidade.
+Prompts relevantes e decisões assistidas por IA são registrados em [PROMPTS.md](./PROMPTS.md). Todo código e documentação gerados com apoio de IA devem ser revisados contra especificação, plano, testes, escopo e complexidade.
+
+Este projeto utilizou o Spec Kit do GitHub em conjunto com o Codex.

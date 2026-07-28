@@ -26,7 +26,8 @@
     "verify": "npm run lint && npm run format:check && npm run typecheck && npm run test",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "start:stack": "node scripts/start-stack.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
