@@ -9,6 +9,7 @@ import {
 import { AppError, toErrorEnvelope } from "../../shared/errors.js";
 import type { AcceptedCheckoutSnapshot } from "../../modules/orders/domain/checkout.js";
 import type { CheckoutMetrics } from "../../observability/checkout-metrics.js";
+import type { TracePort } from "../../observability/trace.js";
 
 export interface CheckoutCommand {
   readonly idempotencyKey: string;
@@ -23,6 +24,7 @@ export interface CheckoutAcceptor {
 
 export interface CheckoutRouteDependencies {
   readonly acceptCheckout: CheckoutAcceptor;
+  readonly trace?: TracePort;
   readonly metrics?: Pick<
     CheckoutMetrics,
     "recordAccepted" | "recordInvalid" | "recordProductNotFound" | "recordInsufficientStock"
@@ -43,6 +45,7 @@ export const checkoutRouteSchema = {
 export function createCheckoutHandler(dependencies: CheckoutRouteDependencies) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const started = performance.now();
+    const span = dependencies.trace?.startSpan("http.request");
     void started;
 
     try {
@@ -70,6 +73,8 @@ export function createCheckoutHandler(dependencies: CheckoutRouteDependencies) {
       recordCheckoutFailure(dependencies, appError);
       reply.status(appError.httpStatus);
       return toErrorEnvelope(appError, request.id);
+    } finally {
+      span?.end();
     }
   };
 }

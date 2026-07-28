@@ -31,7 +31,13 @@ export class ListProductsUseCase {
 
   public async execute(): Promise<ListProductsResult> {
     const started = this.clock.now().getTime();
-    const cacheResult = await this.dependencies.cache.read();
+    const cacheReadSpan = this.dependencies.trace?.startSpan("catalog.cache.read");
+    let cacheResult;
+    try {
+      cacheResult = await this.dependencies.cache.read();
+    } finally {
+      cacheReadSpan?.end();
+    }
 
     if (cacheResult.state === "hit") {
       this.dependencies.metrics.recordCacheHit();
@@ -103,7 +109,12 @@ export class ListProductsUseCase {
       };
 
       try {
-        await this.dependencies.cache.write(entry, this.config.ttlSeconds);
+        const cacheWriteSpan = this.dependencies.trace?.startSpan("catalog.cache.write");
+        try {
+          await this.dependencies.cache.write(entry, this.config.ttlSeconds);
+        } finally {
+          cacheWriteSpan?.end();
+        }
         this.dependencies.cache.markHealthy();
         this.dependencies.metrics.recordDegradedModeTransition("healthy");
       } catch (error) {

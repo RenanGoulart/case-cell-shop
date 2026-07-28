@@ -1,6 +1,7 @@
 import type { Logger } from "pino";
 
 import type { WorkerOperationalMetrics } from "../observability/metrics.js";
+import type { TracePort } from "../observability/trace.js";
 import type { ErpClient, ProcessingRepository } from "../modules/orders/ports/processing-ports.js";
 import {
   orderProcessingMessageSchema,
@@ -18,6 +19,7 @@ export interface OrderConsumerOptions {
   readonly retryDelayMs?: number;
   readonly metrics?: WorkerOperationalMetrics;
   readonly logger?: Logger;
+  readonly trace?: TracePort;
 }
 
 export interface WorkerMessageLogContext {
@@ -73,56 +75,62 @@ export class OrderConsumer {
   }
 
   private async handleValidMessage(message: OrderProcessingMessage): Promise<OrderConsumerResult> {
-    const logContext = createWorkerMessageLogContext(message);
-    const logger = this.options.logger?.child(logContext);
-    logger?.info(
-      sanitizeWorkerLogPayload({
-        correlationId: logContext.correlationId,
-        orderId: logContext.orderId,
-        attemptNumber: logContext.attemptNumber,
-        eventId: logContext.eventId,
-      }),
-      "order processing message received",
-    );
+    const span = this.options.trace?.startSpan("worker.process_message");
 
-    const claim = await this.options.repository.claimOrderAttempt(message);
+    try {
+      const logContext = createWorkerMessageLogContext(message);
+      const logger = this.options.logger?.child(logContext);
+      logger?.info(
+        sanitizeWorkerLogPayload({
+          correlationId: logContext.correlationId,
+          orderId: logContext.orderId,
+          attemptNumber: logContext.attemptNumber,
+          eventId: logContext.eventId,
+        }),
+        "order processing message received",
+      );
 
-    if (!claim.claimed) {
+      const claim = await this.options.repository.claimOrderAttempt(message);
+
+      if (!claim.claimed) {
+        this.options.metrics?.recordMessageProcessed("ack");
+        logger?.info({ reason: claim.reason }, "order processing message ignored");
+        return { action: "ack", reason: "duplicate_or_terminal" };
+      }
+
+      const started = performance.now();
+      const erpResult = await this.options.erpClient.processOrder(message);
+      this.options.metrics?.recordErpOutcome(erpResult.result, performance.now() - started);
+
+      const finish = await this.options.repository.finishProcessingAttempt({
+        orderId: message.orderId,
+        attemptNumber: message.attemptNumber,
+        processingToken: claim.processingToken,
+        result: erpResult.result,
+        finishedAt: new Date(),
+        maxAttempts: this.maxAttempts,
+        retryDelayMs: this.retryDelayMs,
+        requestId: message.requestId,
+        correlationId: message.correlationId,
+      });
+
+      if (finish.scheduledRetry === true) {
+        this.options.metrics?.recordRetryScheduled();
+      }
+
+      if (typeof finish.restoredItems === "number" && finish.restoredItems > 0) {
+        this.options.metrics?.recordReservationRestored(finish.restoredItems);
+      }
+
       this.options.metrics?.recordMessageProcessed("ack");
-      logger?.info({ reason: claim.reason }, "order processing message ignored");
-      return { action: "ack", reason: "duplicate_or_terminal" };
+      logger?.info(
+        { erpResult: erpResult.result, applied: finish.applied },
+        "order processing message handled",
+      );
+
+      return { action: "ack", reason: "processed" };
+    } finally {
+      span?.end();
     }
-
-    const started = performance.now();
-    const erpResult = await this.options.erpClient.processOrder(message);
-    this.options.metrics?.recordErpOutcome(erpResult.result, performance.now() - started);
-
-    const finish = await this.options.repository.finishProcessingAttempt({
-      orderId: message.orderId,
-      attemptNumber: message.attemptNumber,
-      processingToken: claim.processingToken,
-      result: erpResult.result,
-      finishedAt: new Date(),
-      maxAttempts: this.maxAttempts,
-      retryDelayMs: this.retryDelayMs,
-      requestId: message.requestId,
-      correlationId: message.correlationId,
-    });
-
-    if (finish.scheduledRetry === true) {
-      this.options.metrics?.recordRetryScheduled();
-    }
-
-    if (typeof finish.restoredItems === "number" && finish.restoredItems > 0) {
-      this.options.metrics?.recordReservationRestored(finish.restoredItems);
-    }
-
-    this.options.metrics?.recordMessageProcessed("ack");
-    logger?.info(
-      { erpResult: erpResult.result, applied: finish.applied },
-      "order processing message handled",
-    );
-
-    return { action: "ack", reason: "processed" };
   }
 }

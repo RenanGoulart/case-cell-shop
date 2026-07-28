@@ -17,10 +17,12 @@ import {
   type Clock,
   type UuidGenerator,
 } from "../../../shared/ports/runtime.js";
+import type { TracePort } from "../../../observability/trace.js";
 
 export interface AcceptCheckoutDependencies {
   readonly repository: CheckoutRepository;
   readonly idempotencyMetrics?: CheckoutIdempotencyMetrics;
+  readonly trace?: TracePort;
 }
 
 export interface AcceptCheckoutConfig {
@@ -57,29 +59,35 @@ export class AcceptCheckoutUseCase {
     const reservationId = this.uuidGenerator.randomUuid();
     const outboxEventId = this.uuidGenerator.randomUuid();
 
-    const result = await this.dependencies.repository.accept({
-      idempotencyKey: command.idempotencyKey,
-      requestHash: hashCanonicalPayload(payload),
-      canonicalBody: canonicalBody(payload),
-      orderId,
-      reservationId,
-      outboxEventId,
-      requestId: command.requestId,
-      correlationId: command.correlationId,
-      items,
-      idempotencyExpiresAt: addHours(now, this.config.idempotencyRetentionHours),
-      reservationExpiresAt: addSeconds(now, this.config.reservationTtlSeconds),
-      occurredAt: now,
-      outboxPayload: {
-        version: 1,
-        eventId: outboxEventId,
+    const repositorySpan = this.dependencies.trace?.startSpan("checkout.repository_outbox");
+    let result;
+    try {
+      result = await this.dependencies.repository.accept({
+        idempotencyKey: command.idempotencyKey,
+        requestHash: hashCanonicalPayload(payload),
+        canonicalBody: canonicalBody(payload),
         orderId,
+        reservationId,
+        outboxEventId,
         requestId: command.requestId,
         correlationId: command.correlationId,
-        attemptNumber: 1,
-        occurredAt: now.toISOString(),
-      },
-    });
+        items,
+        idempotencyExpiresAt: addHours(now, this.config.idempotencyRetentionHours),
+        reservationExpiresAt: addSeconds(now, this.config.reservationTtlSeconds),
+        occurredAt: now,
+        outboxPayload: {
+          version: 1,
+          eventId: outboxEventId,
+          orderId,
+          requestId: command.requestId,
+          correlationId: command.correlationId,
+          attemptNumber: 1,
+          occurredAt: now.toISOString(),
+        },
+      });
+    } finally {
+      repositorySpan?.end();
+    }
 
     if (result.outcome === "accepted") {
       this.dependencies.idempotencyMetrics?.recordCreated();

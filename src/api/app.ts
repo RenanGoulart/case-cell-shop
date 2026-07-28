@@ -22,6 +22,7 @@ import { createCatalogMetrics } from "../observability/catalog-metrics.js";
 import { createCheckoutMetrics, type CheckoutMetrics } from "../observability/checkout-metrics.js";
 import { createLogger } from "../observability/logger.js";
 import { createApiMetricsRegistry } from "../observability/metrics.js";
+import { noopTracePort } from "../observability/trace.js";
 import {
   createProductsHandler,
   productsRouteSchema,
@@ -201,12 +202,14 @@ function createDefaultProductsRouteDependencies(
   const catalogMetrics = createCatalogMetrics(registry);
 
   return {
+    trace: noopTracePort,
     listProducts: new ListProductsUseCase(
       {
         repository,
         cache,
         metrics: catalogMetrics,
         sleeper: systemSleeper,
+        trace: noopTracePort,
       },
       {
         ttlSeconds: config.catalogCacheTtlSeconds,
@@ -235,10 +238,12 @@ function createDefaultCheckoutRouteDependencies(
   const repository = new PrismaCheckoutRepository(prisma);
   return {
     metrics,
+    trace: noopTracePort,
     acceptCheckout: new AcceptCheckoutUseCase(
       {
         repository,
         idempotencyMetrics: metrics,
+        trace: noopTracePort,
       },
       {
         idempotencyRetentionHours: config.idempotencyRetentionHours,

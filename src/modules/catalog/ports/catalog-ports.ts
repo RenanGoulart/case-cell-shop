@@ -1,4 +1,5 @@
 ﻿import type { Sleeper } from "../../../shared/ports/runtime.js";
+import type { TracePort } from "../../../observability/trace.js";
 
 export interface CatalogProductRecord {
   readonly id: string;
@@ -54,4 +55,5 @@ export interface ListProductsDependencies {
   readonly cache: CatalogCacheRepository;
   readonly metrics: CatalogMetricsPort;
   readonly sleeper: Sleeper;
+  readonly trace?: TracePort;
 }

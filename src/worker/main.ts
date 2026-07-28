@@ -9,6 +9,7 @@ import { SimulatedErpClient } from "../adapters/erp/simulated-erp-client.js";
 import { loadConfig } from "../config/env.js";
 import { createLogger } from "../observability/logger.js";
 import { createWorkerMetricsRegistry } from "../observability/metrics.js";
+import { noopTracePort } from "../observability/trace.js";
 import {
   cryptoUuidGenerator,
   mathRandomGenerator,
@@ -58,6 +59,7 @@ async function runWorker(): Promise<void> {
     retryDelayMs: config.erpRetryDelaySeconds * 1_000,
     metrics: metrics.worker,
     logger,
+    trace: noopTracePort,
   });
   const expirer = new ReservationExpirer({
     repository,

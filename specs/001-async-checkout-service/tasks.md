@@ -246,10 +246,10 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T105 [US6] Implement worker child logger context with correlationId, orderId, attemptNumber and outbox event id in src/worker/order-consumer.ts
 - [X] T106 [US6] Implement API and worker metrics endpoints with prom-client registries in src/api/routes/metrics.ts and src/worker/metrics-server.ts
 - [X] T107 [US6] Implement no-op TracePort and document trace stub integration point in src/observability/trace.ts
-- [ ] T118 [P] [US6] Write failing contract test for Grafana provisioning files, Prometheus datasource and dashboard panels in tests/contract/grafana.test.ts
-- [ ] T119 [US6] Provision Grafana Prometheus datasource in observability/grafana/provisioning/datasources/prometheus.yml, dashboard provider in observability/grafana/provisioning/dashboards/dashboards.yml and dashboard JSON in observability/grafana/dashboards/casecellshop-overview.json covering cache, checkout, latency, worker, outbox, retries and failures
-- [ ] T120 [P] [US6] Write failing tests for no-op spans at request, cache, repository/outbox and worker boundaries in tests/unit/observability/trace.test.ts
-- [ ] T121 [US6] Connect TracePort no-op spans to HTTP request, catalog cache, checkout repository/outbox and worker processing flows
+- [X] T118 [P] [US6] Write failing contract test for Grafana provisioning files, Prometheus datasource and dashboard panels in tests/contract/grafana.test.ts
+- [X] T119 [US6] Provision Grafana Prometheus datasource in observability/grafana/provisioning/datasources/prometheus.yml, dashboard provider in observability/grafana/provisioning/dashboards/dashboards.yml and dashboard JSON in observability/grafana/dashboards/casecellshop-overview.json covering cache, checkout, latency, worker, outbox, retries and failures
+- [X] T120 [P] [US6] Write failing tests for no-op spans at request, cache, repository/outbox and worker boundaries in tests/unit/observability/trace.test.ts
+- [X] T121 [US6] Connect TracePort no-op spans to HTTP request, catalog cache, checkout repository/outbox and worker processing flows
 
 **Checkpoint**: User Story 6 is independently functional and testable.
 

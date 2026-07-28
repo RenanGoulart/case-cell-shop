@@ -8,6 +8,7 @@ import {
 } from "../schemas/http.js";
 import { AppError, toErrorEnvelope } from "../../shared/errors.js";
 import type { ListProductsResult } from "../../modules/catalog/application/list-products.js";
+import type { TracePort } from "../../observability/trace.js";
 
 export interface ProductsListExecutor {
   execute(): Promise<ListProductsResult>;
@@ -15,6 +16,7 @@ export interface ProductsListExecutor {
 
 export interface ProductsRouteDependencies {
   readonly listProducts: ProductsListExecutor;
+  readonly trace?: TracePort;
 }
 
 export const productsRouteSchema = {
@@ -28,6 +30,8 @@ export const productsRouteSchema = {
 
 export function createProductsHandler(dependencies: ProductsRouteDependencies) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
+    const span = dependencies.trace?.startSpan("http.request");
+
     try {
       const result = await dependencies.listProducts.execute();
 
@@ -47,6 +51,8 @@ export function createProductsHandler(dependencies: ProductsRouteDependencies) {
 
       reply.status(appError.httpStatus);
       return toErrorEnvelope(appError, request.id);
+    } finally {
+      span?.end();
     }
   };
 }
