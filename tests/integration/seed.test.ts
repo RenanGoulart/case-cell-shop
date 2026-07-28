@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { buildSeedProducts, planSeedCatalogChange } from "../../prisma/seed.js";
 
@@ -20,13 +20,20 @@ describe("deterministic product seed", () => {
     ).toBe(true);
   });
 
-  it("plans non-destructive inserts and catalog version increment only when new products exist", () => {
+  it("plans non-destructive inserts without catalog version increment and relies on TTL-only cache renewal", () => {
     const products = buildSeedProducts(20260727);
 
-    expect(planSeedCatalogChange(products, new Set()).shouldIncrementCatalogVersion).toBe(true);
-    expect(
-      planSeedCatalogChange(products, new Set(products.map((product) => product.id)))
-        .shouldIncrementCatalogVersion,
-    ).toBe(false);
+    const initialRun = planSeedCatalogChange(products, new Set());
+    const idempotentRun = planSeedCatalogChange(
+      products,
+      new Set(products.map((product) => product.id)),
+    );
+
+    expect(initialRun.missingProducts).toHaveLength(50);
+    expect(initialRun.shouldIncrementCatalogVersion).toBe(false);
+    expect(initialRun.cacheRenewalStrategy).toBe("ttl_only");
+    expect(idempotentRun.missingProducts).toHaveLength(0);
+    expect(idempotentRun.shouldIncrementCatalogVersion).toBe(false);
+    expect(idempotentRun.cacheRenewalStrategy).toBe("ttl_only");
   });
 });

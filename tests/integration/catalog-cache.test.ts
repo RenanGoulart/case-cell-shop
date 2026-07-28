@@ -96,9 +96,10 @@ describe("catalog cache fallback and recovery", () => {
   it("serves PostgreSQL fallback when Redis GET fails and keeps API behavior available", async () => {
     const cache = new Cache({ state: "unavailable", error: new Error("redis get failed") });
     const metrics = new Metrics();
+    const repository = new Repository({ version: 1, products: [product] });
     const useCase = new ListProductsUseCase(
       {
-        repository: new Repository({ version: 1, products: [product] }),
+        repository,
         cache,
         metrics,
         sleeper: new FakeSleeper(),
@@ -113,6 +114,7 @@ describe("catalog cache fallback and recovery", () => {
     expect(cache.degraded).toBe(true);
     expect(metrics.redisFailures).toBe(1);
     expect(metrics.fallbacks).toBe(1);
+    expect(repository.reads).toBe(1);
   });
 
   it("marks degraded on Redis SET failure and reloads from PostgreSQL", async () => {
@@ -134,11 +136,12 @@ describe("catalog cache fallback and recovery", () => {
     expect(cache.writes).toBe(1);
   });
 
-  it("keeps Redis hit faster by skipping the documented 500ms database delay", async () => {
+  it("keeps Redis hit faster by skipping PostgreSQL version reload and the documented 500ms database delay", async () => {
     const sleeper = new FakeSleeper();
+    const repository = new Repository({ version: 99, products: [] });
     const useCase = new ListProductsUseCase(
       {
-        repository: new Repository({ version: 1, products: [product] }),
+        repository,
         cache: new Cache({
           state: "hit",
           entry: { version: 1, products: [product], cachedAt: "2026-07-27T00:00:00.000Z" },
@@ -151,6 +154,7 @@ describe("catalog cache fallback and recovery", () => {
 
     await useCase.execute();
 
+    expect(repository.reads).toBe(0);
     expect(sleeper.sleeps).toEqual([]);
   });
 });

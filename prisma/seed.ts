@@ -10,7 +10,8 @@ export interface SeedProduct {
 
 export interface SeedCatalogChangePlan {
   readonly missingProducts: readonly SeedProduct[];
-  readonly shouldIncrementCatalogVersion: boolean;
+  readonly shouldIncrementCatalogVersion: false;
+  readonly cacheRenewalStrategy: "ttl_only";
 }
 
 export function buildSeedProducts(seed = 20260727): SeedProduct[] {
@@ -40,7 +41,8 @@ export function planSeedCatalogChange(
 
   return {
     missingProducts,
-    shouldIncrementCatalogVersion: missingProducts.length > 0,
+    shouldIncrementCatalogVersion: false,
+    cacheRenewalStrategy: "ttl_only",
   };
 }
 
@@ -66,11 +68,6 @@ async function main(): Promise<void> {
     await tx.product.createMany({
       data: [...plan.missingProducts],
       skipDuplicates: true,
-    });
-    await tx.catalogState.upsert({
-      where: { id: 1 },
-      update: { version: { increment: 1 } },
-      create: { id: 1, version: 1 },
     });
   });
 

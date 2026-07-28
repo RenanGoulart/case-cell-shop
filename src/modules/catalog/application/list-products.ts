@@ -34,19 +34,13 @@ export class ListProductsUseCase {
     const cacheResult = await this.dependencies.cache.read();
 
     if (cacheResult.state === "hit") {
-      const currentVersion = await this.loadCurrentVersionWithoutArtificialDelay();
-      if (cacheResult.entry.version === currentVersion) {
-        this.dependencies.metrics.recordCacheHit();
-        const result = this.toResult(cacheResult.entry.products, "cache");
-        this.dependencies.metrics.observeListDuration(
-          this.elapsedSince(started),
-          result.status === 204 ? "empty" : "hit",
-        );
-        return result;
-      }
-
-      this.dependencies.metrics.recordCacheMiss("version_mismatch");
-      return this.refreshWithSingleFlight(started, "database");
+      this.dependencies.metrics.recordCacheHit();
+      const result = this.toResult(cacheResult.entry.products, "cache");
+      this.dependencies.metrics.observeListDuration(
+        this.elapsedSince(started),
+        result.status === 204 ? "empty" : "hit",
+      );
+      return result;
     }
 
     if (cacheResult.state === "invalid") {
@@ -124,11 +118,6 @@ export class ListProductsUseCase {
       result.status === 204 ? "empty" : source === "database_fallback" ? "fallback" : "miss",
     );
     return result;
-  }
-
-  private async loadCurrentVersionWithoutArtificialDelay(): Promise<number> {
-    const snapshot = await this.dependencies.repository.findCatalogSnapshot();
-    return snapshot.version;
   }
 
   private toResult(

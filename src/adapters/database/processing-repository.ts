@@ -13,6 +13,13 @@ import type { OrderProcessingMessage } from "../../worker/schemas/order-processi
 import type { OutboxEventToPublish } from "../../worker/outbox-publisher.js";
 
 export class PrismaProcessingRepository implements ProcessingRepository {
+  public static shouldIncrementCatalogGenerationForReservationEffect(
+    effect: "consume" | "release",
+  ): false {
+    void effect;
+    return false;
+  }
+
   public constructor(private readonly prisma: PrismaClient) {}
 
   public async claimOrderAttempt(
@@ -212,14 +219,6 @@ export class PrismaProcessingRepository implements ProcessingRepository {
         }
       }
 
-      if (restoredItems > 0) {
-        await tx.catalogState.upsert({
-          where: { id: 1 },
-          update: { version: { increment: 1 } },
-          create: { id: 1, version: 1 },
-        });
-      }
-
       return { expiredReservations, restoredItems };
     });
   }
@@ -339,14 +338,6 @@ export class PrismaProcessingRepository implements ProcessingRepository {
           data: { availableQuantity: { increment: item.quantity } },
         });
       }
-    }
-
-    if (reservations.length > 0) {
-      await tx.catalogState.upsert({
-        where: { id: 1 },
-        update: { version: { increment: 1 } },
-        create: { id: 1, version: 1 },
-      });
     }
   }
 }

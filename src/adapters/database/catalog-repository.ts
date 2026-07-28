@@ -1,4 +1,4 @@
-﻿import type { PrismaClient } from "../../generated/prisma/client.js";
+import type { PrismaClient } from "../../generated/prisma/client.js";
 import type {
   CatalogSnapshot,
   ProductRepository,
@@ -8,19 +8,12 @@ export class PrismaCatalogRepository implements ProductRepository {
   public constructor(private readonly prisma: PrismaClient) {}
 
   public async findCatalogSnapshot(): Promise<CatalogSnapshot> {
-    const [catalogState, products] = await Promise.all([
-      this.prisma.catalogState.upsert({
-        where: { id: 1 },
-        update: {},
-        create: { id: 1, version: 0 },
-      }),
-      this.prisma.product.findMany({
-        orderBy: { id: "asc" },
-      }),
-    ]);
+    const products = await this.prisma.product.findMany({
+      orderBy: { id: "asc" },
+    });
 
     return {
-      version: catalogState.version,
+      version: 0,
       products: products.map((product) => ({
         id: product.id,
         name: product.name,

@@ -1,3 +1,4 @@
+// Active catalog invalidation is reserved for future ERP-local synchronization.
 import type { CatalogCacheRepository } from "../ports/catalog-ports.js";
 import type { CatalogInvalidationPort } from "../../orders/ports/order-ports.js";
 

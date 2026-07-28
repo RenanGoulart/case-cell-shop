@@ -114,7 +114,7 @@ function createUseCase(
 
 describe("ListProductsUseCase cache decisions", () => {
   it("uses a valid cache hit without artificial database delay", async () => {
-    const { useCase, metrics, sleeper } = createUseCase(
+    const { useCase, repository, metrics, sleeper } = createUseCase(
       new FakeCache({
         state: "hit",
         entry: { version: 1, products: [product], cachedAt: "2026-07-27T00:00:00.000Z" },
@@ -127,6 +127,7 @@ describe("ListProductsUseCase cache decisions", () => {
     expect(result.source).toBe("cache");
     expect(result.products[0]).toMatchObject({ price: "59.90" });
     expect(metrics.hits).toBe(1);
+    expect(repository.reads).toBe(0);
     expect(sleeper.sleeps).toEqual([]);
   });
 
@@ -164,18 +165,22 @@ describe("ListProductsUseCase cache decisions", () => {
     expect(metrics.fallbacks).toBe(1);
   });
 
-  it("refreshes when cache version mismatches current catalog version", async () => {
-    const { useCase, metrics } = createUseCase(
+  it("uses a valid cache hit directly without PostgreSQL version check", async () => {
+    const { useCase, repository, metrics, sleeper } = createUseCase(
       new FakeCache({
         state: "hit",
         entry: { version: 0, products: [product], cachedAt: "2026-07-27T00:00:00.000Z" },
       }),
+      new FakeRepository({ version: 99, products: [] }),
     );
 
     const result = await useCase.execute();
 
-    expect(result.source).toBe("database");
-    expect(metrics.misses).toEqual(["version_mismatch"]);
+    expect(result.source).toBe("cache");
+    expect(repository.reads).toBe(0);
+    expect(metrics.hits).toBe(1);
+    expect(metrics.misses).toEqual([]);
+    expect(sleeper.sleeps).toEqual([]);
   });
 
   it("refreshes when cached payload is invalid", async () => {

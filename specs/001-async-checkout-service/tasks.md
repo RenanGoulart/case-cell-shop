@@ -55,8 +55,8 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T024 Create Prisma schema with products, catalog state, orders, order items, idempotency records, stock reservations, reservation items, processing attempts and outbox events in prisma/schema.prisma
 - [X] T025 Create initial migration with PostgreSQL enums, checks, partial indexes, unique constraints and conditional claim indexes in prisma/migrations/001_initial/migration.sql
 - [X] T026 Configure Prisma 7 adapter and generated client location in prisma.config.ts
-- [ ] T027 Write failing integration tests for deterministic Faker seed, idempotent re-run without cache version increment and TTL-only cache renewal in tests/integration/seed.test.ts
-- [ ] T028 Implement deterministic 50-product Faker seed with non-destructive createMany and no CatalogState/cache-version increment in prisma/seed.ts
+- [X] T027 Write failing integration tests for deterministic Faker seed, idempotent re-run without cache version increment and TTL-only cache renewal in tests/integration/seed.test.ts
+- [X] T028 Implement deterministic 50-product Faker seed with non-destructive createMany and no CatalogState/cache-version increment in prisma/seed.ts
 - [X] T029 Create Prisma client factory and transaction helper with no network calls inside transactions in src/adapters/database/prisma.ts
 - [X] T030 Create Fastify app builder with Zod type provider, requestId, correlationId, error envelope, Swagger/OpenAPI and metrics plugins in src/api/app.ts
 - [X] T031 Create API process entrypoint that opens the Fastify socket only from main in src/api/main.ts
@@ -81,8 +81,8 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 > Write these tests FIRST and confirm each fails for the expected reason.
 
 - [X] T037 [P] [US1] Write failing contract tests for GET /products 200, 204 without body, 503 error envelope and request/correlation headers in tests/contract/products.test.ts
-- [ ] T038 [P] [US1] Write failing unit tests for direct catalog cache hit without PostgreSQL version check, miss, expired entry, invalid payload and 500ms database artificial delay decisions in tests/unit/catalog/catalog-cache.test.ts
-- [ ] T039 [P] [US1] Write failing integration tests for Redis GET/SET failure, degraded mode, recovery without version reload, PostgreSQL fallback and 50% faster direct Redis hit with 500ms database artificial delay in tests/integration/catalog-cache.test.ts
+- [X] T038 [P] [US1] Write failing unit tests for direct catalog cache hit without PostgreSQL version check, miss, expired entry, invalid payload and 500ms database artificial delay decisions in tests/unit/catalog/catalog-cache.test.ts
+- [X] T039 [P] [US1] Write failing integration tests for Redis GET/SET failure, degraded mode, recovery without version reload, PostgreSQL fallback and 50% faster direct Redis hit with 500ms database artificial delay in tests/integration/catalog-cache.test.ts
 - [X] T040 [P] [US1] Write failing integration tests for concurrent cache expiration reads and single-flight refresh behavior in tests/integration/catalog-concurrency.test.ts
 - [X] T041 [P] [US1] Write failing OpenAPI snapshot test for /products and /metrics contract coverage in tests/contract/openapi-products.test.ts
 
@@ -90,8 +90,8 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 
 - [X] T042 [P] [US1] Define catalog ports for product repository, cache repository and metrics in src/modules/catalog/ports/catalog-ports.ts
 - [X] T043 [P] [US1] Implement catalog product mapping and money serialization rules in src/modules/catalog/domain/product.ts
-- [ ] T044 [US1] Implement ListProductsUseCase with cache-aside, TTL, direct Redis hit without CatalogState/PostgreSQL version validation, 204 empty result, degraded Redis behavior and configurable 500ms artificial database delay for local cache validation in src/modules/catalog/application/list-products.ts
-- [ ] T045 [US1] Implement Prisma catalog repository for product reads only, removing CatalogState reads from GET /products path in src/adapters/database/catalog-repository.ts
+- [X] T044 [US1] Implement ListProductsUseCase with cache-aside, TTL, direct Redis hit without CatalogState/PostgreSQL version validation, 204 empty result, degraded Redis behavior and configurable 500ms artificial database delay for local cache validation in src/modules/catalog/application/list-products.ts
+- [X] T045 [US1] Implement Prisma catalog repository for product reads only, removing CatalogState reads from GET /products path in src/adapters/database/catalog-repository.ts
 - [X] T046 [US1] Implement Redis catalog cache adapter with key casecellshop:v1:products, TTL, payload validation and circuit breaker in src/adapters/cache/catalog-cache.ts
 - [X] T047 [US1] Implement catalog route with Zod request/response schema binding for GET /products in src/api/routes/products.ts
 - [X] T048 [US1] Register catalog route and API metrics endpoint in src/api/app.ts
@@ -127,7 +127,7 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T060 [US2] Implement Prisma reservation and outbox creation inside checkout transaction in src/adapters/database/checkout-repository.ts
 - [X] T061 [US2] Implement checkout route with Idempotency-Key header, Zod schema validation and error translation in src/api/routes/checkout.ts
 - [X] T062 [US2] Register checkout route in API builder in src/api/app.ts
-- [ ] T063 [US2] Remove checkout/reservation-driven catalog invalidation from current scope and document that active invalidation belongs to future ERP-local synchronization in src/modules/catalog/application/invalidate-catalog.ts
+- [X] T063 [US2] Remove checkout/reservation-driven catalog invalidation from current scope and document that active invalidation belongs to future ERP-local synchronization in src/modules/catalog/application/invalidate-catalog.ts
 - [X] T064 [US2] Add checkout metrics for created, invalid, product not found, insufficient stock and accepted latency in src/observability/checkout-metrics.ts
 
 **Checkpoint**: User Story 2 is independently functional and testable.
@@ -204,7 +204,7 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T086 [P] [US5] Write failing integration tests for worker consumer duplicate delivery, terminal no-op and one attempt per order/attempt number in tests/integration/order-consumer-idempotency.test.ts
 - [X] T087 [P] [US5] Write failing e2e tests for confirmed, temporarily unavailable, unavailable, timeout, third retry failure and late ERP response in tests/e2e/erp-results.test.ts
 - [X] T088 [P] [US5] Write failing integration tests for reservation expiration sweeper and single stock restitution in tests/integration/reservation-expiration.test.ts
-- [ ] T122 [P] [US5] Write failing integration test proving reservation consume/release does not increment CatalogState/cache generation in tests/integration/processing-reservation-cache-generation.test.ts
+- [X] T122 [P] [US5] Write failing integration test proving reservation consume/release does not increment CatalogState/cache generation in tests/integration/processing-reservation-cache-generation.test.ts
 
 ### Implementation for User Story 5
 
@@ -214,8 +214,8 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T092 [US5] Implement order consumer claim flow that transitions pending/retrying to processing, creates ProcessingAttempt and guards attempt uniqueness in src/worker/order-consumer.ts
 - [X] T093 [US5] Implement ERP attempt completion transaction for confirmed, temporarily_unavailable, unavailable and timeout in src/modules/orders/application/finish-processing-attempt.ts
 - [X] T094 [US5] Implement retry scheduling by creating one new outbox event with availableAt after retryable ERP outcomes in src/adapters/database/processing-repository.ts
-- [ ] T095 [US5] Implement reservation consume and release rules inside processing transactions in src/adapters/database/processing-repository.ts
-- [ ] T117 [US5] Remove catalog generation increment from reservation consume/release paths in src/adapters/database/processing-repository.ts
+- [X] T095 [US5] Implement reservation consume and release rules inside processing transactions in src/adapters/database/processing-repository.ts
+- [X] T117 [US5] Remove catalog generation increment from reservation consume/release paths in src/adapters/database/processing-repository.ts
 - [X] T096 [US5] Implement recovery sweeper for abandoned processing attempts and late timeout application in src/worker/recovery-sweeper.ts
 - [X] T097 [US5] Implement reservation expirer with FOR UPDATE SKIP LOCKED, order failure and single stock restitution in src/worker/reservation-expirer.ts
 - [X] T098 [US5] Wire worker main loop for publisher, consumer, recovery sweeper, reservation expirer and graceful shutdown in src/worker/main.ts

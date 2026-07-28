@@ -15,7 +15,6 @@ import { PrismaCheckoutRepository } from "../adapters/database/checkout-reposito
 import { PrismaOrderStatusRepository } from "../adapters/database/order-status-repository.js";
 import { createPrismaClient } from "../adapters/database/prisma.js";
 import type { AppConfig } from "../config/env.js";
-import { InvalidateCatalogUseCase } from "../modules/catalog/application/invalidate-catalog.js";
 import { ListProductsUseCase } from "../modules/catalog/application/list-products.js";
 import { AcceptCheckoutUseCase } from "../modules/orders/application/accept-checkout.js";
 import { GetOrderStatusUseCase } from "../modules/orders/application/get-order-status.js";
@@ -233,15 +232,12 @@ function createDefaultCheckoutRouteDependencies(
   metrics: CheckoutMetrics,
 ): CheckoutRouteDependencies {
   const prisma = createPrismaClient(config.databaseUrl);
-  const redis = createRedisClientAdapter(config.redisUrl);
-  const cache = new RedisCatalogCache(redis);
   const repository = new PrismaCheckoutRepository(prisma);
   return {
     metrics,
     acceptCheckout: new AcceptCheckoutUseCase(
       {
         repository,
-        invalidateCatalog: new InvalidateCatalogUseCase(cache),
         idempotencyMetrics: metrics,
       },
       {

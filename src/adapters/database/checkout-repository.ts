@@ -131,12 +131,6 @@ export class PrismaCheckoutRepository implements CheckoutRepository {
           },
         });
 
-        await tx.catalogState.upsert({
-          where: { id: 1 },
-          update: { version: { increment: 1 } },
-          create: { id: 1, version: 1 },
-        });
-
         return { outcome: "accepted", orderId: input.orderId };
       });
     } catch (error) {

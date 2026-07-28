@@ -26,7 +26,7 @@ describe("AcceptCheckoutUseCase transaction orchestration", () => {
       orderId: "00000000-0000-4000-8000-000000000001",
     });
     const useCase = new AcceptCheckoutUseCase(
-      { repository, invalidateCatalog: { invalidate: () => Promise.resolve() } },
+      { repository },
       {
         clock: new FakeClock(new Date("2026-07-27T00:00:00.000Z")),
         uuidGenerator: new SequenceUuidGenerator(),

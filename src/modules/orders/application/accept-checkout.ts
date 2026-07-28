@@ -10,11 +10,7 @@ import {
   validateCheckoutItemsForAcceptance,
   type AcceptedCheckoutSnapshot,
 } from "../domain/checkout.js";
-import type {
-  CatalogInvalidationPort,
-  CheckoutIdempotencyMetrics,
-  CheckoutRepository,
-} from "../ports/order-ports.js";
+import type { CheckoutIdempotencyMetrics, CheckoutRepository } from "../ports/order-ports.js";
 import {
   cryptoUuidGenerator,
   systemClock,
@@ -24,7 +20,6 @@ import {
 
 export interface AcceptCheckoutDependencies {
   readonly repository: CheckoutRepository;
-  readonly invalidateCatalog?: CatalogInvalidationPort;
   readonly idempotencyMetrics?: CheckoutIdempotencyMetrics;
 }
 
@@ -88,7 +83,6 @@ export class AcceptCheckoutUseCase {
 
     if (result.outcome === "accepted") {
       this.dependencies.idempotencyMetrics?.recordCreated();
-      await this.dependencies.invalidateCatalog?.invalidate().catch(() => undefined);
       return buildAcceptedCheckoutSnapshot(result.orderId);
     }
 
