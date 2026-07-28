@@ -47,6 +47,10 @@ export interface AppDependencies {
   readonly orderStatus?: OrderStatusRouteDependencies;
 }
 
+interface CloseHookRegistry {
+  addHook(name: "onClose", hook: () => Promise<void>): void;
+}
+
 export async function buildApp(config: AppConfig, dependencies: AppDependencies = {}) {
   const app = Fastify({
     loggerInstance: createLogger(config.logLevel),
@@ -130,7 +134,7 @@ export async function buildApp(config: AppConfig, dependencies: AppDependencies 
     dependencies.products ??
     (hasDependencyOverrides
       ? createStubProductsRouteDependencies()
-      : createDefaultProductsRouteDependencies(config, metrics.registry));
+      : await createDefaultProductsRouteDependencies(app, config, metrics.registry));
   app.get(
     "/products",
     { schema: productsRouteSchema },
@@ -191,15 +195,21 @@ function createStubOrderStatusRouteDependencies(): OrderStatusRouteDependencies 
   };
 }
 
-function createDefaultProductsRouteDependencies(
+async function createDefaultProductsRouteDependencies(
+  app: CloseHookRegistry,
   config: AppConfig,
   registry: ReturnType<typeof createApiMetricsRegistry>["registry"],
-): ProductsRouteDependencies {
+): Promise<ProductsRouteDependencies> {
   const prisma = createPrismaClient(config.databaseUrl);
   const redis = createRedisClientAdapter(config.redisUrl);
   const repository = new PrismaCatalogRepository(prisma);
   const cache = new RedisCatalogCache(redis);
   const catalogMetrics = createCatalogMetrics(registry);
+
+  await redis.connect();
+  app.addHook("onClose", async () => {
+    await redis.disconnect();
+  });
 
   return {
     trace: noopTracePort,

@@ -96,6 +96,7 @@
 - **Purpose**: Corrigir branch divergente, critério local de performance do cache e evidencia estatística do ERP.
 - **Prompt summary**: Atualizar a branch da spec para `001-async-checkout-service`; documentar atraso artificial configurável de 500ms no caminho de banco do catalogo para imitar latência de produção local; reduzir teste probabilístico do ERP para 1.000 tentativas com tolerância de 4 pontos percentuais.
 - **Result**: Atualizados `spec.md`, `plan.md`, `research.md`, `test-scenarios.md`, `quickstart.md` e `tasks.md` para refletir as decisões e manter a rastreabilidade da entrega.
+
 ## 2026-07-27 — Geração das tarefas da feature
 
 - **Command**: `$speckit-tasks`
@@ -109,9 +110,17 @@
 - **Purpose**: Implementar a feature por fases, permitindo validação manual do usuário entre etapas.
 - **Prompt summary**: Executar o próximo bloco pendente de `tasks.md`, mantendo contratos, testes, documentação, Docker Compose, Zod, ESLint e UTF-8 consistentes.
 - **Result**: Implementação incremental da API, worker, persistência, cache, idempotência, outbox, métricas, contratos de drift, smoke script e documentação de entrega.
+
 ## 2026-07-27 — Revisão do plano: cache direto por TTL
 
 - **Command**: `$speckit-plan`
 - **Purpose**: Remover do plano a validação de versão no PostgreSQL em todo `GET /products` com cache válido.
 - **Prompt summary**: Manter Redis cache-aside com TTL de 60 segundos; em hit retornar diretamente o cache sem `SELECT` no PostgreSQL; em miss/expiração/falha consultar PostgreSQL e renovar cache; documentar que invalidação ativa dependeria de sincronização ERP-banco local, fora do escopo.
 - **Result**: Atualizados `spec.md`, `plan.md`, `research.md`, `data-model.md`, `test-scenarios.md`, `quickstart.md`, checklist e README para refletir a decisão de cache direto por TTL.
+
+## 2026-07-28 — Implementação da fase final
+
+- **Command**: `$speckit-implement`
+- **Purpose**: Concluir a fase final de polish, validação local, validação Docker Compose e consistência documental.
+- **Prompt summary**: Implementar a fase final sem inferir fora do escopo, questionando ambiguidades, e garantir API/cache/contrato, observabilidade, concorrência, idempotência, testes, README operacional e prompts de IA.
+- **Result**: Executados `npm run verify` e `docker compose --profile test run --rm test npm run verify`, ajustada documentação do trace stub no-op conectado, registrada evidência final e mantidos os requisitos do case rastreáveis nos artefatos.

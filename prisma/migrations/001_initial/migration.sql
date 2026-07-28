@@ -1,7 +1,7 @@
 CREATE TYPE order_status AS ENUM ('pending', 'processing', 'retrying', 'confirmed', 'failed');
-CREATE TYPE reservation_state AS ENUM ('active', 'consumed', 'released');
+CREATE TYPE reservation_state AS ENUM ('active', 'consumed', 'released', 'expired');
 CREATE TYPE processing_attempt_result AS ENUM ('confirmed', 'temporarily_unavailable', 'unavailable', 'timeout');
-CREATE TYPE outbox_status AS ENUM ('pending', 'published');
+CREATE TYPE outbox_status AS ENUM ('pending', 'processing', 'published');
 
 CREATE TABLE products (
   id TEXT PRIMARY KEY,
@@ -62,11 +62,14 @@ CREATE TABLE stock_reservations (
   expires_at TIMESTAMPTZ NOT NULL,
   consumed_at TIMESTAMPTZ,
   released_at TIMESTAMPTZ,
+  expired_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (
-    (state = 'active' AND consumed_at IS NULL AND released_at IS NULL)
-    OR (state = 'consumed' AND consumed_at IS NOT NULL AND released_at IS NULL)
-    OR (state = 'released' AND released_at IS NOT NULL AND consumed_at IS NULL)
+    (state = 'active' AND consumed_at IS NULL AND released_at IS NULL AND expired_at IS NULL)
+    OR (state = 'consumed' AND consumed_at IS NOT NULL AND released_at IS NULL AND expired_at IS NULL)
+    OR (state = 'released' AND released_at IS NOT NULL AND consumed_at IS NULL AND expired_at IS NULL)
+    OR (state = 'expired' AND expired_at IS NOT NULL AND consumed_at IS NULL AND released_at IS NULL)
   )
 );
 
@@ -102,12 +105,18 @@ CREATE TABLE outbox_events (
   order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   type TEXT NOT NULL,
   payload JSONB NOT NULL,
+  attempt_number INTEGER NOT NULL DEFAULT 1 CHECK (attempt_number BETWEEN 1 AND 3),
+  publish_attempts INTEGER NOT NULL DEFAULT 0 CHECK (publish_attempts >= 0),
   status outbox_status NOT NULL DEFAULT 'pending',
   available_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   published_at TIMESTAMPTZ,
   lock_token UUID,
+  locked_at TIMESTAMPTZ,
   locked_until TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  last_error VARCHAR(256),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (order_id, type, attempt_number)
 );
 
 CREATE INDEX outbox_events_status_available_at_idx ON outbox_events(status, available_at);

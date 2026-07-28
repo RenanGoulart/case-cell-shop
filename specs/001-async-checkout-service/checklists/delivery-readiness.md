@@ -82,6 +82,7 @@
 - Add comments or findings inline
 - Link to relevant resources or documentation
 - Items are numbered sequentially for easy reference
+
 ## Evidence review - 2026-07-27
 
 - CHK001-CHK018: Evidência em `specs/001-async-checkout-service/contracts/openapi.yaml`, schemas Zod da API e teste `tests/contract/openapi-drift.test.ts`.
@@ -92,3 +93,10 @@
 - CHK008, CHK017, CHK027, CHK045: Evidência em middleware de `requestId`/`correlationId`, logs Pino, métricas Prometheus da API/worker e contratos `/metrics`.
 - CHK009, CHK028, CHK039, CHK043: Evidência em `docker-compose.yml`, `.env`, seed Faker de 50 produtos, `scripts/quickstart-smoke.ps1` e `specs/001-async-checkout-service/quickstart.md`.
 - CHK010, CHK040-CHK046: Evidência em `README.md`, `PROMPTS.md`, constituição, plano e documentação explícita de trade-offs, limitações e ausência de sincronização ERP-banco local.
+
+## Final validation evidence - 2026-07-28
+
+- T113: `npm run verify` executado com sucesso em 2026-07-28, cobrindo lint com zero warnings, Prettier check, Prisma generate/typecheck e Vitest completo: 38 arquivos de teste, 97 testes.
+- T114: `docker compose --profile test run --rm test npm run verify` executado com sucesso em 2026-07-28 dentro do Compose: lint, format, typecheck e suites Vitest do container aprovadas.
+- T115: Checklist revisado após a validação final; os itens permanecem satisfeitos com evidências em contratos, testes, README, PROMPTS.md, quickstart, Docker Compose, Prometheus/Grafana e logs/métricas correlacionados.
+- T116: Consistência final revisada entre spec.md, plan.md, tasks.md, README.md e PROMPTS.md sem alteração de comportamento ou ampliação de escopo.

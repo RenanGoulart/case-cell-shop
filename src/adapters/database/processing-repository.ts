@@ -146,6 +146,7 @@ export class PrismaProcessingRepository implements ProcessingRepository {
             id: nextOutboxEventId,
             orderId: input.orderId,
             type: "order.processing.retry",
+            attemptNumber: decision.nextAttemptNumber,
             payload: {
               version: 1,
               eventId: nextOutboxEventId,
@@ -196,7 +197,7 @@ export class PrismaProcessingRepository implements ProcessingRepository {
       for (const reservation of reservations) {
         const updated = await tx.stockReservation.updateMany({
           where: { id: reservation.id, state: "active" },
-          data: { state: "released", releasedAt: now },
+          data: { state: "expired", expiredAt: now },
         });
 
         if (updated.count !== 1) {
@@ -275,10 +276,10 @@ export class PrismaProcessingRepository implements ProcessingRepository {
       const rows = await tx.$queryRaw<
         { id: string; payload: Prisma.JsonValue }[]
       >`SELECT id, payload FROM "outbox_events"
-        WHERE status = 'pending'
+        WHERE status IN ('pending', 'processing')
           AND available_at <= ${now}
-          AND (locked_until IS NULL OR locked_until < ${now})
-        ORDER BY available_at ASC, created_at ASC
+          AND (status = 'pending' OR locked_until IS NULL OR locked_until < ${now})
+        ORDER BY available_at ASC, created_at ASC, attempt_number ASC
         LIMIT ${limit}
         FOR UPDATE SKIP LOCKED`;
 
@@ -288,7 +289,14 @@ export class PrismaProcessingRepository implements ProcessingRepository {
 
       await tx.outboxEvent.updateMany({
         where: { id: { in: rows.map((row) => row.id) } },
-        data: { lockToken, lockedUntil },
+        data: {
+          status: "processing",
+          lockToken,
+          lockedAt: now,
+          lockedUntil,
+          publishAttempts: { increment: 1 },
+          lastError: null,
+        },
       });
 
       return rows.map((row) => ({
@@ -305,8 +313,14 @@ export class PrismaProcessingRepository implements ProcessingRepository {
     publishedAt: Date,
   ): Promise<boolean> {
     const updated = await this.prisma.outboxEvent.updateMany({
-      where: { id: eventId, lockToken, status: "pending" },
-      data: { status: "published", publishedAt, lockToken: null, lockedUntil: null },
+      where: { id: eventId, lockToken, status: "processing" },
+      data: {
+        status: "published",
+        publishedAt,
+        lockToken: null,
+        lockedAt: null,
+        lockedUntil: null,
+      },
     });
 
     return updated.count === 1;

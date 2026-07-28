@@ -264,10 +264,10 @@ retries, duplicate messages, and asynchronous processing MUST have test tasks be
 - [X] T110 [P] Add OpenAPI drift validation comparing generated documentation to specs/001-async-checkout-service/contracts/openapi.yaml in tests/contract/openapi-drift.test.ts
 - [X] T111 [P] Add worker contract drift validation for specs/001-async-checkout-service/contracts/worker-openapi.yaml and order-processing-message.schema.json in tests/contract/worker-contract-drift.test.ts
 - [X] T112 [P] Add quickstart smoke script covering catalog, checkout, idempotency replay, status, metrics and Docker Compose checks in scripts/quickstart-smoke.ps1
-- [ ] T113 Run full local quality gate and fix only valid failures until npm run verify passes with zero warnings in package.json
-- [ ] T114 Run Docker Compose validation and fix only valid failures until docker compose --profile test run --rm test npm run verify passes in docker-compose.yml
-- [ ] T115 Review delivery-readiness checklist and mark satisfied items with evidence references in specs/001-async-checkout-service/checklists/delivery-readiness.md
-- [ ] T116 Final consistency pass across spec.md, plan.md, tasks.md, README.md and PROMPTS.md without changing behavior to fit incorrect implementation in specs/001-async-checkout-service/tasks.md
+- [X] T113 Run full local quality gate and fix only valid failures until npm run verify passes with zero warnings in package.json
+- [X] T114 Run Docker Compose validation and fix only valid failures until docker compose --profile test run --rm test npm run verify passes in docker-compose.yml
+- [X] T115 Review delivery-readiness checklist and mark satisfied items with evidence references in specs/001-async-checkout-service/checklists/delivery-readiness.md
+- [X] T116 Final consistency pass across spec.md, plan.md, tasks.md, README.md and PROMPTS.md without changing behavior to fit incorrect implementation in specs/001-async-checkout-service/tasks.md
 
 ---
 
@@ -379,3 +379,9 @@ Task: "T088 Integration test for reservation expiration in tests/integration/res
 - Redis, RabbitMQ and ERP are adapters; stock, reservation, idempotency and status rules remain isolated from infrastructure.
 - PostgreSQL real integration tests are mandatory evidence for atomic stock update, idempotency claims, outbox claims and overselling prevention.
 - Authentication, payment, frontend, cloud deploy, real ERP integration and ERP-local synchronization remain out of scope.
+
+
+## Phase 9: Convergence
+
+- [X] T123 Align reservation expiration persistence with the planned `expired`/`expiredAt` reservation state and update schema, domain, repository and tests per plan/data-model: ReservationStatus (partial)
+- [X] T124 Align outbox persistence lifecycle with the planned processing state, attempt metadata and duplicate-attempt guard, or implement an explicit equivalent contract with tests per plan/data-model: OutboxStatus (partial)

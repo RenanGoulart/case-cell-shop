@@ -1,4 +1,4 @@
-export const reservationStates = ["active", "consumed", "released"] as const;
+export const reservationStates = ["active", "consumed", "released", "expired"] as const;
 
 export type ReservationState = (typeof reservationStates)[number];
 
@@ -6,12 +6,14 @@ export interface ReservationMarker {
   readonly state: ReservationState;
   readonly consumedAt?: Date | null;
   readonly releasedAt?: Date | null;
+  readonly expiredAt?: Date | null;
 }
 
 const allowedTransitions: ReadonlyMap<ReservationState, ReadonlySet<ReservationState>> = new Map([
-  ["active", new Set(["consumed", "released"])],
+  ["active", new Set(["consumed", "released", "expired"])],
   ["consumed", new Set()],
   ["released", new Set()],
+  ["expired", new Set()],
 ]);
 
 export function canTransitionReservation(from: ReservationState, to: ReservationState): boolean {
@@ -32,6 +34,14 @@ export function markReservationReleased(
 ): ReservationMarker {
   assertReservationTransition(reservation.state, "released");
   return { ...reservation, state: "released", releasedAt };
+}
+
+export function markReservationExpired(
+  reservation: ReservationMarker,
+  expiredAt: Date,
+): ReservationMarker {
+  assertReservationTransition(reservation.state, "expired");
+  return { ...reservation, state: "expired", expiredAt };
 }
 
 function assertReservationTransition(from: ReservationState, to: ReservationState): void {

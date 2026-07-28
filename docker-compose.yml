@@ -40,7 +40,10 @@ services:
       retries: 12
 
   migrate:
-    build: .
+    build:
+      context: .
+      args:
+        DATABASE_URL: ${DATABASE_URL}
     command: sh -c "npm run prisma:migrate && npm run prisma:seed"
     env_file: .env
     depends_on:
@@ -48,7 +51,10 @@ services:
         condition: service_healthy
 
   api:
-    build: .
+    build:
+      context: .
+      args:
+        DATABASE_URL: ${DATABASE_URL}
     command: npm run start:api
     env_file: .env
     ports:
@@ -62,7 +68,10 @@ services:
         condition: service_healthy
 
   worker:
-    build: .
+    build:
+      context: .
+      args:
+        DATABASE_URL: ${DATABASE_URL}
     command: npm run start:worker
     env_file: .env
     ports:
@@ -107,7 +116,10 @@ services:
         condition: service_started
 
   test:
-    build: .
+    build:
+      context: .
+      args:
+        DATABASE_URL: ${DATABASE_URL}
     profiles: ["test"]
     command: npm run verify
     env_file: .env

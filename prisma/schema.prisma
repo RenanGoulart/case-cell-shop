@@ -21,6 +21,7 @@ enum ReservationState {
   active
   consumed
   released
+  expired
 
   @@map("reservation_state")
 }
@@ -36,6 +37,7 @@ enum ProcessingAttemptResult {
 
 enum OutboxStatus {
   pending
+  processing
   published
 
   @@map("outbox_status")
@@ -63,14 +65,14 @@ model CatalogState {
 }
 
 model Order {
-  id                 String               @id @default(uuid()) @db.Uuid
-  status             OrderStatus          @default(pending)
-  requestId          String               @map("request_id") @db.Uuid
-  correlationId      String               @map("correlation_id") @db.Uuid
-  currentAttempt     Int                  @default(0) @map("current_attempt")
-  finalError         String?              @map("final_error")
-  createdAt          DateTime             @default(now()) @map("created_at")
-  updatedAt          DateTime             @updatedAt @map("updated_at")
+  id                 String              @id @default(uuid()) @db.Uuid
+  status             OrderStatus         @default(pending)
+  requestId          String              @map("request_id") @db.Uuid
+  correlationId      String              @map("correlation_id") @db.Uuid
+  currentAttempt     Int                 @default(0) @map("current_attempt")
+  finalError         String?             @map("final_error")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
   items              OrderItem[]
   idempotencyRecords IdempotencyRecord[]
   reservations       StockReservation[]
@@ -95,28 +97,30 @@ model OrderItem {
 }
 
 model IdempotencyRecord {
-  id             String   @id @default(uuid()) @db.Uuid
-  key            String   @unique
-  requestHash    String   @map("request_hash")
-  canonicalBody  Json     @map("canonical_body")
-  orderId        String?  @map("order_id") @db.Uuid
-  expiresAt      DateTime @map("expires_at")
-  createdAt      DateTime @default(now()) @map("created_at")
-  order          Order?   @relation(fields: [orderId], references: [id])
+  id            String   @id @default(uuid()) @db.Uuid
+  key           String   @unique
+  requestHash   String   @map("request_hash")
+  canonicalBody Json     @map("canonical_body")
+  orderId       String?  @map("order_id") @db.Uuid
+  expiresAt     DateTime @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  order         Order?   @relation(fields: [orderId], references: [id])
 
   @@index([expiresAt])
   @@map("idempotency_records")
 }
 
 model StockReservation {
-  id         String             @id @default(uuid()) @db.Uuid
-  orderId    String             @map("order_id") @db.Uuid
-  state      ReservationState    @default(active)
-  expiresAt  DateTime           @map("expires_at")
-  consumedAt DateTime?          @map("consumed_at")
-  releasedAt DateTime?          @map("released_at")
-  createdAt  DateTime           @default(now()) @map("created_at")
-  order      Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id         String            @id @default(uuid()) @db.Uuid
+  orderId    String            @map("order_id") @db.Uuid
+  state      ReservationState  @default(active)
+  expiresAt  DateTime          @map("expires_at")
+  consumedAt DateTime?         @map("consumed_at")
+  releasedAt DateTime?         @map("released_at")
+  expiredAt  DateTime?         @map("expired_at")
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt @map("updated_at")
+  order      Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
   items      ReservationItem[]
 
   @@index([state, expiresAt])
@@ -153,18 +157,24 @@ model ProcessingAttempt {
 }
 
 model OutboxEvent {
-  id            String       @id @default(uuid()) @db.Uuid
-  orderId       String       @map("order_id") @db.Uuid
-  type          String
-  payload       Json
-  status        OutboxStatus @default(pending)
-  availableAt   DateTime     @default(now()) @map("available_at")
-  publishedAt   DateTime?    @map("published_at")
-  lockToken     String?      @map("lock_token") @db.Uuid
-  lockedUntil   DateTime?    @map("locked_until")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id              String       @id @default(uuid()) @db.Uuid
+  orderId         String       @map("order_id") @db.Uuid
+  type            String
+  payload         Json
+  attemptNumber   Int          @default(1) @map("attempt_number")
+  publishAttempts Int          @default(0) @map("publish_attempts")
+  status          OutboxStatus @default(pending)
+  availableAt     DateTime     @default(now()) @map("available_at")
+  publishedAt     DateTime?    @map("published_at")
+  lockToken       String?      @map("lock_token") @db.Uuid
+  lockedAt        DateTime?    @map("locked_at")
+  lockedUntil     DateTime?    @map("locked_until")
+  lastError       String?      @map("last_error")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  order           Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
+  @@unique([orderId, type, attemptNumber])
   @@index([status, availableAt])
   @@index([lockToken])
   @@map("outbox_events")

@@ -126,6 +126,7 @@ export class PrismaCheckoutRepository implements CheckoutRepository {
             id: input.outboxEventId,
             orderId: input.orderId,
             type: "order.accepted",
+            attemptNumber: 1,
             payload: input.outboxPayload as Prisma.InputJsonValue,
             availableAt: input.occurredAt,
           },

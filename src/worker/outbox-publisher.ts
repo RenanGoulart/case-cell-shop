@@ -1,7 +1,10 @@
 import type { WorkerOperationalMetrics } from "../observability/metrics.js";
 import type { OrderProcessingMessage } from "./schemas/order-processing-message.js";
 
+export type OutboxPublishableStatus = "pending" | "processing" | "published";
+
 export interface OutboxClaimTokenCheck {
+  readonly currentStatus: OutboxPublishableStatus;
   readonly currentLockToken: string | null;
   readonly expectedLockToken: string;
 }
@@ -39,18 +42,18 @@ export interface OutboxPublisherOptions {
 export function buildOutboxClaimSql(): string {
   return [
     'SELECT * FROM "outbox_events"',
-    "WHERE status = 'pending'",
+    "WHERE status IN ('pending', 'processing')",
     "AND available_at <= $1",
-    "AND (locked_until IS NULL OR locked_until < $1)",
-    "ORDER BY available_at ASC, created_at ASC",
+    "AND (status = 'pending' OR locked_until IS NULL OR locked_until < $1)",
+    "ORDER BY available_at ASC, created_at ASC, attempt_number ASC",
     "LIMIT $2",
     "FOR UPDATE SKIP LOCKED",
-    "UPDATE lock_token = $3, locked_until = $4",
+    "UPDATE status = 'processing', lock_token = $3, locked_at = $1, locked_until = $4, publish_attempts = publish_attempts + 1",
   ].join(" ");
 }
 
 export function shouldMarkOutboxPublished(input: OutboxClaimTokenCheck): boolean {
-  return input.currentLockToken === input.expectedLockToken;
+  return input.currentStatus === "processing" && input.currentLockToken === input.expectedLockToken;
 }
 
 export class OutboxPublisher {

@@ -23,7 +23,8 @@ export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
 export const ReservationState = {
   active: 'active',
   consumed: 'consumed',
-  released: 'released'
+  released: 'released',
+  expired: 'expired'
 } as const
 
 export type ReservationState = (typeof ReservationState)[keyof typeof ReservationState]
@@ -41,6 +42,7 @@ export type ProcessingAttemptResult = (typeof ProcessingAttemptResult)[keyof typ
 
 export const OutboxStatus = {
   pending: 'pending',
+  processing: 'processing',
   published: 'published'
 } as const
 

@@ -1198,7 +1198,9 @@ export const StockReservationScalarFieldEnum = {
   expiresAt: 'expiresAt',
   consumedAt: 'consumedAt',
   releasedAt: 'releasedAt',
-  createdAt: 'createdAt'
+  expiredAt: 'expiredAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type StockReservationScalarFieldEnum = (typeof StockReservationScalarFieldEnum)[keyof typeof StockReservationScalarFieldEnum]
@@ -1234,12 +1236,17 @@ export const OutboxEventScalarFieldEnum = {
   orderId: 'orderId',
   type: 'type',
   payload: 'payload',
+  attemptNumber: 'attemptNumber',
+  publishAttempts: 'publishAttempts',
   status: 'status',
   availableAt: 'availableAt',
   publishedAt: 'publishedAt',
   lockToken: 'lockToken',
+  lockedAt: 'lockedAt',
   lockedUntil: 'lockedUntil',
-  createdAt: 'createdAt'
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type OutboxEventScalarFieldEnum = (typeof OutboxEventScalarFieldEnum)[keyof typeof OutboxEventScalarFieldEnum]
